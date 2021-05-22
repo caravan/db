@@ -25,17 +25,17 @@ func TestCreateTable(t *testing.T) {
 	as := assert.New(t)
 	d := db.NewDatabase()
 
-	tbl, err := d.CreateTable("my-table")
+	tbl, err := d.CreateTable("test-table")
 	as.NotNil(tbl)
 	as.Nil(err)
 
-	_, err = d.CreateTable("my-table")
+	_, err = d.CreateTable("test-table")
 	as.NotNil(err)
-	as.EqualError(err, fmt.Sprintf(db.ErrTableAlreadyExists, "my-table"))
+	as.EqualError(err, fmt.Sprintf(db.ErrTableAlreadyExists, "test-table"))
 
 	l := d.Tables()
 	as.Equal(1, len(l))
-	as.Equal(db.TableName("my-table"), l[0])
+	as.Equal(db.TableName("test-table"), l[0])
 
 	tbl2, ok := d.Table(l[0])
 	as.NotNil(tbl2)

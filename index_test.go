@@ -11,10 +11,10 @@ import (
 func TestIndexName(t *testing.T) {
 	as := assert.New(t)
 	tbl, _ := makeTestTable()
-	idx, ok := tbl.Index("my-index")
+	idx, ok := tbl.Index("unique-index")
 	as.NotNil(idx)
 	as.True(ok)
-	as.Equal(db.IndexName("my-index"), idx.Name())
+	as.Equal(db.IndexName("unique-index"), idx.Name())
 }
 
 func TestUniqueIndexInsert(t *testing.T) {
@@ -24,7 +24,9 @@ func TestUniqueIndexInsert(t *testing.T) {
 		return mutate.Insert(db.NewKey(), tableRow1)
 	})
 	as.NotNil(err)
-	as.EqualError(err, fmt.Sprintf(db.ErrUniqueConstraintFailed, "my-index"))
+	as.EqualError(err,
+		fmt.Sprintf(db.ErrUniqueConstraintFailed, "unique-index"),
+	)
 }
 
 func TestUniqueIndexUpdate(t *testing.T) {
@@ -35,5 +37,7 @@ func TestUniqueIndexUpdate(t *testing.T) {
 		return err
 	})
 	as.NotNil(err)
-	as.EqualError(err, fmt.Sprintf(db.ErrUniqueConstraintFailed, "my-index"))
+	as.EqualError(err,
+		fmt.Sprintf(db.ErrUniqueConstraintFailed, "unique-index"),
+	)
 }
