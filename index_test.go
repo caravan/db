@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/caravan/db"
@@ -14,4 +15,25 @@ func TestIndexName(t *testing.T) {
 	as.NotNil(idx)
 	as.True(ok)
 	as.Equal(db.IndexName("my-index"), idx.Name())
+}
+
+func TestUniqueIndexInsert(t *testing.T) {
+	as := assert.New(t)
+	tbl, _ := makeTestTable()
+	err := tbl.MutateWith(func(mutate db.TableMutator) error {
+		return mutate.Insert(db.NewKey(), tableRow1)
+	})
+	as.NotNil(err)
+	as.EqualError(err, fmt.Sprintf(db.ErrUniqueConstraintFailed, "my-index"))
+}
+
+func TestUniqueIndexUpdate(t *testing.T) {
+	as := assert.New(t)
+	tbl, _ := makeTestTable()
+	err := tbl.MutateWith(func(mutate db.TableMutator) error {
+		_, err := mutate.Update(tableKey2, tableRow1)
+		return err
+	})
+	as.NotNil(err)
+	as.EqualError(err, fmt.Sprintf(db.ErrUniqueConstraintFailed, "my-index"))
 }

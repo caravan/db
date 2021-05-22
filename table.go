@@ -20,7 +20,7 @@ type (
 
 		MutateWith(TableMutatorFunc) error
 
-		CreateIndex(IndexName, ...ColumnName) (Index, error)
+		CreateIndex(IndexType, IndexName, ...ColumnName) (Index, error)
 		Indexes() IndexNames
 		Index(IndexName) (Index, bool)
 	}
@@ -44,7 +44,7 @@ type (
 		name    TableName
 		columns Columns
 		offsets NamedOffsets
-		indexes map[IndexName]*index
+		indexes map[IndexName]Index
 		prefix  Prefix
 	}
 
@@ -68,7 +68,7 @@ func makeTable(db *database, n TableName, cols ...Column) Table {
 		name:     n,
 		columns:  cols,
 		offsets:  MakeNamedOffsets(cols...),
-		indexes:  map[IndexName]*index{},
+		indexes:  map[IndexName]Index{},
 		prefix:   db.Next(),
 	}
 }
@@ -82,7 +82,9 @@ func (t *table) Columns() Columns {
 	return t.columns
 }
 
-func (t *table) CreateIndex(n IndexName, cols ...ColumnName) (Index, error) {
+func (t *table) CreateIndex(
+	makeIndex IndexType, n IndexName, cols ...ColumnName,
+) (Index, error) {
 	t.Lock()
 	defer t.Unlock()
 
@@ -95,7 +97,7 @@ func (t *table) CreateIndex(n IndexName, cols ...ColumnName) (Index, error) {
 		return nil, err
 	}
 
-	res := makeIndex(t, n, MakeOffsetSelector(off...))
+	res := makeIndex(t.Next(), n, MakeOffsetSelector(off...))
 	t.indexes[n] = res
 	return res, nil
 }
@@ -142,8 +144,9 @@ func (t *table) columnOffsets(cols ColumnNames) (Offsets, error) {
 }
 
 func (m *tableMutator) Truncate() {
-	m.mutateIndexes(func(i IndexMutator) {
+	_ = m.mutateIndexes(func(i IndexMutator) error {
 		i.Truncate()
+		return nil
 	})
 	m.tx.DeletePrefix(m.prefix)
 }
@@ -154,10 +157,9 @@ func (m *tableMutator) Insert(k Key, r Row) error {
 		return fmt.Errorf(ErrKeyAlreadyExists, k)
 	}
 	_, _ = m.tx.Insert(key, r)
-	m.mutateIndexes(func(i IndexMutator) {
-		i.Insert(k, r)
+	return m.mutateIndexes(func(i IndexMutator) error {
+		return i.Insert(k, r)
 	})
-	return nil
 }
 
 func (m *tableMutator) Update(k Key, r Row) (Row, error) {
@@ -167,10 +169,13 @@ func (m *tableMutator) Update(k Key, r Row) (Row, error) {
 	}
 	res, _ := m.tx.Insert(key, r)
 	old := res.(Row)
-	m.mutateIndexes(func(i IndexMutator) {
+	err := m.mutateIndexes(func(i IndexMutator) error {
 		i.Delete(k, old)
-		i.Insert(k, r)
+		return i.Insert(k, r)
 	})
+	if err != nil {
+		return nil, err
+	}
 	return old, nil
 }
 
@@ -180,8 +185,9 @@ func (m *tableMutator) Delete(k Key) (Row, bool) {
 		return nil, ok
 	}
 	row := res.(Row)
-	m.mutateIndexes(func(i IndexMutator) {
+	_ = m.mutateIndexes(func(i IndexMutator) error {
 		i.Delete(k, row)
+		return nil
 	})
 	return row, true
 }
@@ -193,12 +199,12 @@ func (m *tableMutator) Select(k Key) (Row, bool) {
 	return nil, false
 }
 
-func (m *tableMutator) mutateIndexes(fn func(IndexMutator)) {
+func (m *tableMutator) mutateIndexes(fn IndexMutatorFunc) error {
 	for _, i := range m.indexes {
-		m := &indexMutator{
-			tx:    m.tx,
-			index: i,
+		m := i.CreateMutator(m.tx)
+		if err := fn(m); err != nil {
+			return err
 		}
-		fn(m)
 	}
+	return nil
 }

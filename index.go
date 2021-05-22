@@ -1,6 +1,9 @@
 package db
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 type (
 	// IndexName identifies an Index
@@ -12,44 +15,69 @@ type (
 	// Index describes a lookup structure associated with a Table
 	Index interface {
 		Name() IndexName
+		CreateMutator(Transaction) IndexMutator
 	}
+
+	// IndexMutatorFunc is provided in order to sequence Index mutations
+	IndexMutatorFunc func(IndexMutator) error
 
 	// IndexMutator allows modification of the internal state of an Index
 	IndexMutator interface {
 		Truncate()
-		Insert(Key, Row)
-		Delete(Key, Row)
+		Insert(Key, Row) error
+		Delete(Key, Row) bool
 	}
 
 	// Indexes are a set of Index
 	Indexes []Index
 
+	// IndexType is used to construct new Index instances
+	IndexType func(Prefix, IndexName, Selector) Index
+
 	// index is the internal implementation of an Index
 	index struct {
-		*table
 		name     IndexName
 		selector Selector
 		prefix   Prefix
+		unique   bool
 	}
 
-	// indexMutator is the internal implementation of an IndexMutator
-	indexMutator struct {
+	uniqueIndex struct {
+		index
+	}
+
+	// uniqueIndexMutator is an IndexMutator that respects unique constraints
+	uniqueIndexMutator struct {
 		*index
 		tx Transaction
 	}
 )
 
-func makeIndex(t *table, n IndexName, s Selector) *index {
-	return &index{
-		table:    t,
-		name:     n,
-		selector: s,
-		prefix:   t.Next(),
+// Error messages
+const (
+	ErrUniqueConstraintFailed = "unique constraint failed: %s"
+)
+
+// UniqueIndex is an IndexType that allows only unique associations
+var UniqueIndex = IndexType(func(p Prefix, n IndexName, s Selector) Index {
+	return &uniqueIndex{
+		index: index{
+			name:     n,
+			selector: s,
+			prefix:   p,
+		},
 	}
-}
+})
 
 func (i *index) Name() IndexName {
 	return i.name
+}
+
+func (i *uniqueIndex) CreateMutator(tx Transaction) IndexMutator {
+	return &uniqueIndexMutator{
+		index: &i.index,
+		tx:    tx,
+	}
 }
 
 func (i *index) getIndexKey(r Row) Key {
@@ -61,14 +89,20 @@ func (i *index) getIndexKey(r Row) Key {
 	return buf.Bytes()
 }
 
-func (m *indexMutator) Truncate() {
+func (m *uniqueIndexMutator) Truncate() {
 	m.tx.DeletePrefix(m.prefix)
 }
 
-func (m *indexMutator) Insert(key Key, r Row) {
-	m.tx.Insert(m.prefix.Bytes(m.getIndexKey(r)), key)
+func (m *uniqueIndexMutator) Insert(k Key, r Row) error {
+	key := m.prefix.Bytes(m.getIndexKey(r))
+	if _, ok := m.tx.Get(key); ok {
+		return fmt.Errorf(ErrUniqueConstraintFailed, m.name)
+	}
+	m.tx.Insert(key, k)
+	return nil
 }
 
-func (m *indexMutator) Delete(_ Key, r Row) {
-	m.tx.Delete(m.prefix.Bytes(m.getIndexKey(r)))
+func (m *uniqueIndexMutator) Delete(_ Key, r Row) bool {
+	_, ok := m.tx.Delete(m.prefix.Bytes(m.getIndexKey(r)))
+	return ok
 }

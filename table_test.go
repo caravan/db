@@ -26,7 +26,7 @@ func makeTestTable() (db.Table, error) {
 		return nil, err
 	}
 
-	_, err = tbl.CreateIndex("my-index", "first", "second")
+	_, err = tbl.CreateIndex(db.UniqueIndex, "my-index", "first", "second")
 	if err != nil {
 		return nil, err
 	}
@@ -186,12 +186,12 @@ func TestTableCreateIndexError(t *testing.T) {
 	as := assert.New(t)
 	tbl, _ := makeTestTable()
 
-	idx, err := tbl.CreateIndex("my-index")
+	idx, err := tbl.CreateIndex(db.UniqueIndex, "my-index")
 	as.Nil(idx)
 	as.NotNil(err)
 	as.EqualError(err, fmt.Sprintf(db.ErrIndexAlreadyExists, "my-index"))
 
-	idx, err = tbl.CreateIndex("another-index", "not found")
+	idx, err = tbl.CreateIndex(db.UniqueIndex, "another-index", "not found")
 	as.Nil(idx)
 	as.NotNil(err)
 	as.EqualError(err, fmt.Sprintf(db.ErrColumnNotFound, "not found"))
