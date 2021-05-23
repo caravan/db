@@ -1,17 +1,17 @@
-package db
+package column
 
 type (
-	// ColumnName identifies a Column
-	ColumnName string
+	// Name identifies a Column
+	Name string
 
-	// ColumnNames are a set of ColumnName
-	ColumnNames []ColumnName
+	// Names are a set of Name
+	Names []Name
 
 	// Column describes a column to be selected from a Table. The
 	// description includes the column's name and a TableSelector for
 	// retrieving the column's value from an Event
 	Column interface {
-		Name() ColumnName
+		Name() Name
 	}
 
 	// Columns are a set of Column
@@ -23,23 +23,23 @@ type (
 	// Offsets are a set of Offset
 	Offsets []Offset
 
-	// NamedOffsets allows an Offset to be retrieved by ColumnName
-	NamedOffsets map[ColumnName]Offset
+	// NamedOffsets allows an Offset to be retrieved by Name
+	NamedOffsets map[Name]Offset
 
 	// column is the internal implementation of a column
 	column struct {
-		name ColumnName
+		name Name
 	}
 )
 
-// MakeColumn instantiates a new column instance
-func MakeColumn(n ColumnName) Column {
+// Make instantiates a new column instance
+func Make(n Name) Column {
 	return &column{
 		name: n,
 	}
 }
 
-func (c *column) Name() ColumnName {
+func (c *column) Name() Name {
 	return c.name
 }
 

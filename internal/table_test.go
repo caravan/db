@@ -1,26 +1,37 @@
-package db_test
+package internal_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/caravan/db"
+	"github.com/caravan/db/column"
+	"github.com/caravan/db/internal"
+	"github.com/caravan/db/relation"
+	"github.com/caravan/db/table"
+	"github.com/caravan/db/value"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	tableKey1 = db.NewKey()
-	tableKey2 = db.NewKey()
-	tableRow1 = db.Row{S("first str"), S("second str")}
-	tableRow2 = db.Row{S("third str"), S("fourth str")}
-	tableRow3 = db.Row{S("fifth str"), S("sixth str")}
+	tableKey1 = value.NewKey()
+	tableKey2 = value.NewKey()
+	tableRow1 = relation.Row{
+		value.String("first str"), value.String("second str"),
+	}
+	tableRow2 = relation.Row{
+		value.String("third str"), value.String("fourth str"),
+	}
+	tableRow3 = relation.Row{
+		value.String("fifth str"), value.String("sixth str"),
+	}
 )
 
-func makeTestTable() (db.Table, error) {
-	d := db.NewDatabase()
+func makeTestTable() (table.Table, error) {
+	d := internal.NewDatabase()
 	tbl, err := d.CreateTable("test-table",
-		db.MakeColumn("first"),
-		db.MakeColumn("second"),
+		column.Make("first"),
+		column.Make("second"),
 	)
 	if err != nil {
 		return nil, err
@@ -36,7 +47,7 @@ func makeTestTable() (db.Table, error) {
 		return nil, err
 	}
 
-	return tbl, tbl.MutateWith(func(mutate db.TableMutator) error {
+	return tbl, tbl.MutateWith(func(mutate table.Mutator) error {
 		if err := mutate.Insert(tableKey1, tableRow1); err != nil {
 			return err
 		}
@@ -54,11 +65,11 @@ func TestMakeTable(t *testing.T) {
 	as.NotNil(tbl)
 	as.Nil(err)
 
-	as.Equal(db.TableName("test-table"), tbl.Name())
+	as.Equal(table.Name("test-table"), tbl.Name())
 	cols := tbl.Columns()
 	as.Equal(2, len(cols))
-	as.Equal(db.ColumnName("first"), cols[0].Name())
-	as.Equal(db.ColumnName("second"), cols[1].Name())
+	as.Equal(column.Name("first"), cols[0].Name())
+	as.Equal(column.Name("second"), cols[1].Name())
 
 	as.Equal(2, len(tbl.Indexes()))
 	idx, ok := tbl.Index("not found")
@@ -70,7 +81,7 @@ func TestTableMutateWith(t *testing.T) {
 	as := assert.New(t)
 
 	tbl, _ := makeTestTable()
-	err := tbl.MutateWith(func(mutate db.TableMutator) error {
+	err := tbl.MutateWith(func(mutate table.Mutator) error {
 		row, ok := mutate.Select(tableKey1)
 		as.True(ok)
 		as.Equal(tableRow1, row)
@@ -79,14 +90,14 @@ func TestTableMutateWith(t *testing.T) {
 		as.True(ok)
 		as.Equal(tableRow2, row)
 
-		row, ok = mutate.Select(db.NewKey())
+		row, ok = mutate.Select(value.NewKey())
 		as.False(ok)
 		as.Nil(row)
 		return nil
 	})
 	as.Nil(err)
 
-	err = tbl.MutateWith(func(mutate db.TableMutator) error {
+	err = tbl.MutateWith(func(mutate table.Mutator) error {
 		old, err := mutate.Update(tableKey1, tableRow3)
 		as.Nil(err)
 		as.Equal(tableRow1, old)
@@ -94,7 +105,7 @@ func TestTableMutateWith(t *testing.T) {
 	})
 	as.Nil(err)
 
-	err = tbl.MutateWith(func(mutate db.TableMutator) error {
+	err = tbl.MutateWith(func(mutate table.Mutator) error {
 		row, ok := mutate.Select(tableKey1)
 		as.True(ok)
 		as.Equal(tableRow3, row)
@@ -107,7 +118,7 @@ func TestTableMutateWithDelete(t *testing.T) {
 	as := assert.New(t)
 
 	tbl, _ := makeTestTable()
-	err := tbl.MutateWith(func(mutate db.TableMutator) error {
+	err := tbl.MutateWith(func(mutate table.Mutator) error {
 		old, ok := mutate.Delete(tableKey1)
 		as.True(ok)
 		as.Equal(tableRow1, old)
@@ -115,7 +126,7 @@ func TestTableMutateWithDelete(t *testing.T) {
 	})
 	as.Nil(err)
 
-	err = tbl.MutateWith(func(mutate db.TableMutator) error {
+	err = tbl.MutateWith(func(mutate table.Mutator) error {
 		row, ok := mutate.Select(tableKey1)
 		as.False(ok)
 		as.Nil(row)
@@ -128,7 +139,7 @@ func TestTableMutateWithError(t *testing.T) {
 	as := assert.New(t)
 
 	tbl, _ := makeTestTable()
-	err := tbl.MutateWith(func(mutate db.TableMutator) error {
+	err := tbl.MutateWith(func(mutate table.Mutator) error {
 		old, err := mutate.Update(tableKey1, tableRow3)
 		as.Nil(err)
 		as.Equal(tableRow1, old)
@@ -137,7 +148,7 @@ func TestTableMutateWithError(t *testing.T) {
 	as.NotNil(err)
 	as.EqualError(err, "should not update")
 
-	err = tbl.MutateWith(func(mutate db.TableMutator) error {
+	err = tbl.MutateWith(func(mutate table.Mutator) error {
 		row, ok := mutate.Select(tableKey1)
 		as.True(ok)
 		as.Equal(tableRow1, row)
@@ -150,13 +161,13 @@ func TestTableMutateWithTruncate(t *testing.T) {
 	as := assert.New(t)
 
 	tbl, _ := makeTestTable()
-	err := tbl.MutateWith(func(mutate db.TableMutator) error {
+	err := tbl.MutateWith(func(mutate table.Mutator) error {
 		mutate.Truncate()
 		return nil
 	})
 	as.Nil(err)
 
-	err = tbl.MutateWith(func(mutate db.TableMutator) error {
+	err = tbl.MutateWith(func(mutate table.Mutator) error {
 		old, ok := mutate.Select(tableKey1)
 		as.Nil(old)
 		as.False(ok)
@@ -169,14 +180,14 @@ func TestTableMutateWithErrors(t *testing.T) {
 	as := assert.New(t)
 
 	tbl, _ := makeTestTable()
-	err := tbl.MutateWith(func(mutate db.TableMutator) error {
+	err := tbl.MutateWith(func(mutate table.Mutator) error {
 		err := mutate.Insert(tableKey1, tableRow3)
-		as.EqualError(err, fmt.Sprintf(db.ErrKeyAlreadyExists, tableKey1))
+		as.EqualError(err, fmt.Sprintf(internal.ErrKeyAlreadyExists, tableKey1))
 
-		tableKey3 := db.NewKey()
+		tableKey3 := value.NewKey()
 		old, err := mutate.Update(tableKey3, tableRow3)
 		as.Nil(old)
-		as.EqualError(err, fmt.Sprintf(db.ErrKeyNotFound, tableKey3))
+		as.EqualError(err, fmt.Sprintf(internal.ErrKeyNotFound, tableKey3))
 
 		old, ok := mutate.Delete(tableKey3)
 		as.Nil(old)
@@ -194,10 +205,10 @@ func TestTableCreateIndexError(t *testing.T) {
 	idx, err := tbl.CreateIndex(db.UniqueIndex, "unique-index")
 	as.Nil(idx)
 	as.NotNil(err)
-	as.EqualError(err, fmt.Sprintf(db.ErrIndexAlreadyExists, "unique-index"))
+	as.EqualError(err, fmt.Sprintf(internal.ErrIndexAlreadyExists, "unique-index"))
 
 	idx, err = tbl.CreateIndex(db.UniqueIndex, "another-index", "not found")
 	as.Nil(idx)
 	as.NotNil(err)
-	as.EqualError(err, fmt.Sprintf(db.ErrColumnNotFound, "not found"))
+	as.EqualError(err, fmt.Sprintf(relation.ErrColumnNotFound, "not found"))
 }

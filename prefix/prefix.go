@@ -1,8 +1,10 @@
-package db
+package prefix
 
 import (
 	"encoding/binary"
 	"sync"
+
+	"github.com/caravan/db/value"
 )
 
 type (
@@ -39,7 +41,7 @@ func (p *sequence) Next() Prefix {
 }
 
 // Bytes combines this Prefix with a provided Key into a byte array
-func (p Prefix) Bytes(k Key) []byte {
+func (p Prefix) Bytes(k value.Key) []byte {
 	b := k.Bytes()
 	res := make([]byte, 0, len(p)+len(b))
 	res = append(res, p...)

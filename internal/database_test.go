@@ -1,29 +1,30 @@
-package db_test
+package internal_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/caravan/db"
+	"github.com/caravan/db/internal"
+	"github.com/caravan/db/table"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMakeDatabase(t *testing.T) {
 	as := assert.New(t)
-	d := db.NewDatabase()
+	d := internal.NewDatabase()
 	as.NotNil(d)
 }
 
 func TestCreateTransaction(t *testing.T) {
 	as := assert.New(t)
-	d := db.NewDatabase()
-	tx := d.CreateTransaction()
-	as.NotNil(tx)
+	d := internal.NewDatabase()
+	txn := d.CreateTransaction()
+	as.NotNil(txn)
 }
 
 func TestCreateTable(t *testing.T) {
 	as := assert.New(t)
-	d := db.NewDatabase()
+	d := internal.NewDatabase()
 
 	tbl, err := d.CreateTable("test-table")
 	as.NotNil(tbl)
@@ -31,11 +32,13 @@ func TestCreateTable(t *testing.T) {
 
 	_, err = d.CreateTable("test-table")
 	as.NotNil(err)
-	as.EqualError(err, fmt.Sprintf(db.ErrTableAlreadyExists, "test-table"))
+	as.EqualError(err,
+		fmt.Sprintf(internal.ErrTableAlreadyExists, "test-table"),
+	)
 
 	l := d.Tables()
 	as.Equal(1, len(l))
-	as.Equal(db.TableName("test-table"), l[0])
+	as.Equal(table.Name("test-table"), l[0])
 
 	tbl2, ok := d.Table(l[0])
 	as.NotNil(tbl2)
