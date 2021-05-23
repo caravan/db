@@ -64,3 +64,11 @@ func TestMakeNamedSelector(t *testing.T) {
 	as.NotNil(err)
 	as.EqualError(err, fmt.Sprintf(db.ErrColumnNotFound, "not there"))
 }
+
+func TestStarSelector(t *testing.T) {
+	as := assert.New(t)
+
+	row := db.Row{S("first"), S("second"), S("third"), S("fourth")}
+	rel := db.StarSelector(row)
+	as.Equal(db.Relation(row), rel)
+}

@@ -54,3 +54,8 @@ func MakeOffsetSelector(offsets ...Offset) Selector {
 		return res
 	}
 }
+
+// StarSelector is used to retrieve the entire Row as a Relation
+var StarSelector = Selector(func(r Row) Relation {
+	return Relation(r)
+})

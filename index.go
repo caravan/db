@@ -37,9 +37,8 @@ type (
 	// index is the base implementation of an Index
 	index struct {
 		name     IndexName
-		selector Selector
 		prefix   Prefix
-		unique   bool
+		selector Selector
 	}
 
 	// uniqueIndex is the internal implementation of a unique Index
