@@ -17,7 +17,7 @@ type (
 	// basicTable is the basic internal implementation of a Table
 	basicTable struct {
 		sync.RWMutex
-		*database
+		db      *db
 		name    table.Name
 		columns column.Columns
 		offsets column.NamedOffsets
@@ -39,16 +39,14 @@ const (
 	ErrKeyNotFound        = "key not found in table: %s"
 )
 
-func makeTable(
-	db *database, n table.Name, cols ...column.Column,
-) *basicTable {
+func makeTable(db *db, n table.Name, cols ...column.Column) table.Table {
 	return &basicTable{
-		database: db,
-		name:     n,
-		columns:  cols,
-		offsets:  column.MakeNamedOffsets(cols...),
-		indexes:  map[index.Name]index.Index{},
-		prefix:   db.Next(),
+		db:      db,
+		name:    n,
+		columns: cols,
+		offsets: column.MakeNamedOffsets(cols...),
+		indexes: map[index.Name]index.Index{},
+		prefix:  db.Next(),
 	}
 }
 
@@ -76,7 +74,7 @@ func (t *basicTable) CreateIndex(
 		return nil, err
 	}
 
-	res := makeIndex(t.Next(), n, relation.MakeOffsetSelector(off...))
+	res := makeIndex(t.db.Next(), n, relation.MakeOffsetSelector(off...))
 	t.indexes[n] = res
 	return res, nil
 }
@@ -110,7 +108,7 @@ func (t *basicTable) MutateWith(fn table.MutatorFunc) error {
 }
 
 func (t *basicTable) mutateWith(fn transaction.TransactionalFunc) error {
-	txn := t.CreateTransaction()
+	txn := t.db.CreateTransaction()
 	if err := fn(txn); err != nil {
 		return err
 	}

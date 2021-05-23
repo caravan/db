@@ -60,7 +60,7 @@ func (i *baseIndex) getIndexKey(r relation.Row) value.Key {
 	return buf.Bytes()
 }
 
-// UniqueIndex is a Type that allows only unique associations
+// UniqueIndex is an index.Type that allows only unique associations
 var UniqueIndex = index.Type(
 	func(p prefix.Prefix, n index.Name, s relation.Selector) index.Index {
 		return &uniqueIndex{
@@ -98,7 +98,7 @@ func (m *uniqueIndexMutator) Delete(_ value.Key, r relation.Row) bool {
 	return ok
 }
 
-// StandardIndex is a Type that allows multiple associations
+// StandardIndex is an index.Type that allows multiple associations
 var StandardIndex = index.Type(
 	func(p prefix.Prefix, n index.Name, s relation.Selector) index.Index {
 		return &standardIndex{

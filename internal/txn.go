@@ -19,7 +19,7 @@ type (
 	committer func(*iradix.Tree)
 )
 
-func makeTransaction(data *iradix.Tree, commit committer) *txn {
+func makeTransaction(data *iradix.Tree, commit committer) transaction.Txn {
 	return &txn{
 		txn:    data.Txn(),
 		commit: commit,
@@ -30,9 +30,7 @@ func (t *txn) Get(k value.Key) (transaction.Any, bool) {
 	return t.txn.Get(k)
 }
 
-func (t *txn) Insert(
-	k value.Key, v transaction.Any,
-) (transaction.Any, bool) {
+func (t *txn) Insert(k value.Key, v transaction.Any) (transaction.Any, bool) {
 	return t.txn.Insert(k, v)
 }
 
