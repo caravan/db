@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/caravan/db/column"
 	"github.com/caravan/db/index"
@@ -14,22 +13,23 @@ import (
 )
 
 type (
-	// basicTable is the basic internal implementation of a Table
-	basicTable struct {
-		sync.RWMutex
-		db      *db
+	// tableInfo is the basic internal implementation of a Table
+	tableInfo struct {
+		db      *dbInfo
 		name    table.Name
 		columns column.Columns
 		offsets column.NamedOffsets
-		indexes map[index.Name]index.Index
+		indexes map[index.Name]index.Constructor
 		prefix  prefix.Prefix
 	}
 
-	// basicTableMutator is the basic internal implementation of a Mutator
-	basicTableMutator struct {
-		*basicTable
+	// tableTransactor is the basic implementation of a table.Transactor
+	tableTransactor struct {
+		*tableInfo
 		txn transaction.Txn
 	}
+
+	indexerFunc func(index.Index) error
 )
 
 // Error messages
@@ -39,51 +39,54 @@ const (
 	ErrKeyNotFound        = "key not found in table: %s"
 )
 
-func makeTable(db *db, n table.Name, cols ...column.Column) table.Table {
-	return &basicTable{
-		db:      db,
+func makeTable(
+	db *dbTransactor, n table.Name, cols ...column.Column,
+) *tableInfo {
+	return &tableInfo{
+		db:      db.dbInfo,
 		name:    n,
 		columns: cols,
 		offsets: column.MakeNamedOffsets(cols...),
-		indexes: map[index.Name]index.Index{},
+		indexes: map[index.Name]index.Constructor{},
 		prefix:  db.Next(),
 	}
 }
 
-func (t *basicTable) Name() table.Name {
+func (t *tableInfo) transactor(txn transaction.Txn) *tableTransactor {
+	return &tableTransactor{
+		tableInfo: t,
+		txn:       txn,
+	}
+}
+
+func (t *tableTransactor) Name() table.Name {
 	return t.name
 }
 
 // Columns returns the defined Columns for this table
-func (t *basicTable) Columns() column.Columns {
+func (t *tableTransactor) Columns() column.Columns {
 	return t.columns
 }
 
-func (t *basicTable) CreateIndex(
-	makeIndex index.Type, n index.Name, cols ...column.Name,
-) (index.Index, error) {
-	t.Lock()
-	defer t.Unlock()
-
+func (t *tableTransactor) CreateIndex(
+	typ index.Type, n index.Name, cols ...column.Name,
+) error {
 	if _, ok := t.indexes[n]; ok {
-		return nil, fmt.Errorf(ErrIndexAlreadyExists, n)
+		return fmt.Errorf(ErrIndexAlreadyExists, n)
 	}
 
 	off, err := t.columnOffsets(cols)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	res := makeIndex(t.db.Next(), n, relation.MakeOffsetSelector(off...))
-	t.indexes[n] = res
-	return res, nil
+	cons := typ(t.db.Next(), n, relation.MakeOffsetSelector(off...))
+	t.indexes[n] = cons
+	return nil
 }
 
 // Indexes returns the defined Indexes for this table
-func (t *basicTable) Indexes() index.Names {
-	t.RLock()
-	defer t.RUnlock()
-
+func (t *tableTransactor) Indexes() index.Names {
 	res := make(index.Names, 0, len(t.indexes))
 	for n := range t.indexes {
 		res = append(res, n)
@@ -91,64 +94,39 @@ func (t *basicTable) Indexes() index.Names {
 	return res
 }
 
-func (t *basicTable) Index(n index.Name) (index.Index, bool) {
-	t.RLock()
-	defer t.RUnlock()
-	res, ok := t.indexes[n]
-	return res, ok
-}
-
-func (t *basicTable) MutateWith(fn table.MutatorFunc) error {
-	return t.mutateWith(func(txn transaction.Txn) error {
-		return fn(&basicTableMutator{
-			basicTable: t,
-			txn:        txn,
-		})
-	})
-}
-
-func (t *basicTable) mutateWith(fn transaction.TransactionalFunc) error {
-	txn := t.db.CreateTransaction()
-	if err := fn(txn); err != nil {
-		return err
-	}
-	txn.Commit()
-	return nil
-}
-
-func (t *basicTable) columnOffsets(cols column.Names) (column.Offsets, error) {
+func (t *tableInfo) columnOffsets(cols column.Names) (column.Offsets, error) {
 	return relation.MakeOffsets(t.columns, cols...)
 }
 
-func (m *basicTableMutator) Truncate() {
-	_ = m.mutateIndexes(func(i index.Mutator) error {
+func (t *tableTransactor) Truncate() {
+	_ = t.mutateIndexes(func(i index.Index) error {
 		i.Truncate()
 		return nil
 	})
-	m.txn.DeletePrefix(m.prefix)
+	t.txn.DeletePrefix(t.prefix)
 }
 
-func (m *basicTableMutator) Insert(k value.Key, r relation.Row) error {
-	key := m.prefix.Bytes(k)
-	if _, ok := m.txn.Get(key); ok {
+func (t *tableTransactor) Insert(k value.Key, r relation.Row) error {
+	key := t.prefix.Bytes(k)
+	if _, ok := t.txn.Get(key); ok {
 		return fmt.Errorf(ErrKeyAlreadyExists, k)
 	}
-	_, _ = m.txn.Insert(key, r)
-	return m.mutateIndexes(func(i index.Mutator) error {
+	_, _ = t.txn.Insert(key, r)
+	return t.mutateIndexes(func(i index.Index) error {
 		return i.Insert(k, r)
 	})
 }
 
-func (m *basicTableMutator) Update(
+func (t *tableTransactor) Update(
 	k value.Key, r relation.Row,
 ) (relation.Row, error) {
-	key := m.prefix.Bytes(k)
-	if _, ok := m.txn.Get(key); !ok {
+	key := t.prefix.Bytes(k)
+	if _, ok := t.txn.Get(key); !ok {
 		return nil, fmt.Errorf(ErrKeyNotFound, k)
 	}
-	res, _ := m.txn.Insert(key, r)
+	res, _ := t.txn.Insert(key, r)
 	old := res.(relation.Row)
-	err := m.mutateIndexes(func(i index.Mutator) error {
+	err := t.mutateIndexes(func(i index.Index) error {
 		i.Delete(k, old)
 		return i.Insert(k, r)
 	})
@@ -158,30 +136,29 @@ func (m *basicTableMutator) Update(
 	return old, nil
 }
 
-func (m *basicTableMutator) Delete(k value.Key) (relation.Row, bool) {
-	res, ok := m.txn.Delete(m.prefix.Bytes(k))
+func (t *tableTransactor) Delete(k value.Key) (relation.Row, bool) {
+	res, ok := t.txn.Delete(t.prefix.Bytes(k))
 	if res == nil || !ok {
 		return nil, ok
 	}
 	row := res.(relation.Row)
-	_ = m.mutateIndexes(func(i index.Mutator) error {
+	_ = t.mutateIndexes(func(i index.Index) error {
 		i.Delete(k, row)
 		return nil
 	})
 	return row, true
 }
 
-func (m *basicTableMutator) Select(k value.Key) (relation.Row, bool) {
-	if v, ok := m.txn.Get(m.prefix.Bytes(k)); ok {
+func (t *tableTransactor) Select(k value.Key) (relation.Row, bool) {
+	if v, ok := t.txn.Get(t.prefix.Bytes(k)); ok {
 		return v.(relation.Row), true
 	}
 	return nil, false
 }
 
-func (m *basicTableMutator) mutateIndexes(fn index.MutatorFunc) error {
-	for _, i := range m.indexes {
-		m := i.CreateMutator(m.txn)
-		if err := fn(m); err != nil {
+func (t *tableTransactor) mutateIndexes(fn indexerFunc) error {
+	for _, i := range t.indexes {
+		if err := fn(i(t.txn)); err != nil {
 			return err
 		}
 	}

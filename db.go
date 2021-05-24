@@ -5,8 +5,8 @@ import (
 	"github.com/caravan/db/internal"
 )
 
-// NewDatabase returns a new Database instance
-func NewDatabase() database.Database {
+// NewDatabase returns a new Transactor instance
+func NewDatabase() database.Transactor {
 	return internal.NewDatabase()
 }
 

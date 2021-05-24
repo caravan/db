@@ -4,27 +4,21 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/caravan/db/index"
+	"github.com/caravan/db/database"
 	"github.com/caravan/db/internal"
-	"github.com/caravan/db/table"
 	"github.com/caravan/db/value"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIndexName(t *testing.T) {
-	as := assert.New(t)
-	tbl, _ := makeTestTable()
-	idx, ok := tbl.Index("unique-index")
-	as.NotNil(idx)
-	as.True(ok)
-	as.Equal(index.Name("unique-index"), idx.Name())
-}
-
 func TestUniqueIndexInsert(t *testing.T) {
 	as := assert.New(t)
-	tbl, _ := makeTestTable()
-	err := tbl.MutateWith(func(mutate table.Mutator) error {
-		return mutate.Insert(value.NewKey(), tableRow1)
+
+	d, _ := makeTestDatabase()
+	err := d(func(d database.Database) error {
+		tbl, ok := d.Table("test-table")
+		as.True(ok)
+
+		return tbl.Insert(value.NewKey(), tableRow1)
 	})
 	as.NotNil(err)
 	as.EqualError(err,
@@ -34,9 +28,12 @@ func TestUniqueIndexInsert(t *testing.T) {
 
 func TestUniqueIndexUpdate(t *testing.T) {
 	as := assert.New(t)
-	tbl, _ := makeTestTable()
-	err := tbl.MutateWith(func(mutate table.Mutator) error {
-		_, err := mutate.Update(tableKey2, tableRow1)
+	d, _ := makeTestDatabase()
+	err := d(func(d database.Database) error {
+		tbl, ok := d.Table("test-table")
+		as.True(ok)
+
+		_, err := tbl.Update(tableKey2, tableRow1)
 		return err
 	})
 	as.NotNil(err)

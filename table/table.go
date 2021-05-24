@@ -20,22 +20,14 @@ type (
 		Name() Name
 		Columns() column.Columns
 
-		MutateWith(MutatorFunc) error
-
-		CreateIndex(index.Type, index.Name, ...column.Name) (index.Index, error)
 		Indexes() index.Names
-		Index(index.Name) (index.Index, bool)
-	}
+		CreateIndex(index.Type, index.Name, ...column.Name) error
 
-	// MutatorFunc is provided in order to sequence Table mutations
-	MutatorFunc func(Mutator) error
-
-	// Mutator allows modification of the internal state of a Table
-	Mutator interface {
-		Truncate()
 		Insert(value.Key, relation.Row) error
 		Update(value.Key, relation.Row) (relation.Row, error)
 		Delete(value.Key) (relation.Row, bool)
+		Truncate()
+
 		Select(value.Key) (relation.Row, bool)
 	}
 )

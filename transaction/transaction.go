@@ -9,16 +9,16 @@ type (
 	// Any is a stand-in for Go's empty interface
 	Any interface{}
 
-	// Txn manages the types of events that can be performed at
-	// the most basic level of the storage system
+	// Txn manages the types of events that can be performed at the
+	// most basic level of the storage system
 	Txn interface {
-		Get(value.Key) (Any, bool)
 		Insert(value.Key, Any) (Any, bool)
 		Delete(value.Key) (Any, bool)
 		DeletePrefix(prefix.Prefix) bool
+		Get(value.Key) (Any, bool)
 		Commit()
 	}
 
-	// TransactionalFunc is provided in order to sequence Txn events
-	TransactionalFunc func(Txn) error
+	// WriterFunc is provided in order to sequence transactional writes
+	WriterFunc func(Txn) error
 )
