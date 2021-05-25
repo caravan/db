@@ -4,23 +4,23 @@ import (
 	"testing"
 
 	"github.com/caravan/db/prefix"
-	"github.com/caravan/db/value"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewSequence(t *testing.T) {
+func TestPrefixes(t *testing.T) {
 	as := assert.New(t)
 
-	s := prefix.NewSequence()
+	s := prefix.Start
 	as.NotNil(s)
 
 	p1 := s.Next()
-	p2 := s.Next()
+	p2 := p1.Next()
 
-	as.Equal(prefix.Prefix{0, 0, 0, 0}, p1)
-	as.Equal(prefix.Prefix{0, 0, 0, 1}, p2)
+	as.NotEqual(prefix.Start, p1)
+	as.NotEqual(p1, p2)
 
-	k := value.NewKey()
-	combined := append([]byte{0, 0, 0, 1}, k...)
-	as.Equal(combined, p2.Bytes(k))
+	as.Equal([]byte{0, 0, 0, 0}, s.Bytes())
+	as.Equal([]byte{0, 0, 0, 1}, p1.Bytes())
+	as.Equal([]byte{0, 0, 0, 2}, p2.Bytes())
+	as.Equal([]byte{0, 0, 0, 2, 0, 1, 0, 2}, p2.WithKeys([]byte{1}, []byte{2}))
 }

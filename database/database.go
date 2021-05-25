@@ -6,9 +6,11 @@ import (
 )
 
 type (
-	Transactor func(Func) error
+	// Transactor provides access to a Database's internal state
+	Transactor func(Query) (Transactor, error)
 
-	Func func(Database) error
+	// Query is a function that can perform Database queries or mutations
+	Query func(Database) error
 
 	// Database is an interface that manages a set of Tables and other
 	// data management structures

@@ -30,7 +30,7 @@ var (
 
 func makeTestDatabase() (database.Transactor, error) {
 	d := internal.NewDatabase()
-	return d, d(func(d database.Database) error {
+	return d(func(d database.Database) error {
 		tbl, err := d.CreateTable("test-table",
 			column.Make("first"),
 			column.Make("second"),
@@ -63,7 +63,7 @@ func TestMakeTable(t *testing.T) {
 	as := assert.New(t)
 
 	d, _ := makeTestDatabase()
-	as.Nil(d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.NotNil(tbl)
 		as.True(ok)
@@ -76,16 +76,20 @@ func TestMakeTable(t *testing.T) {
 
 		as.Equal(2, len(tbl.Indexes()))
 		return nil
-	}))
+	})
+	as.Nil(err)
 }
 
-func TestTableMutateWith(t *testing.T) {
+func TestTable(t *testing.T) {
 	as := assert.New(t)
 
 	d, _ := makeTestDatabase()
-	as.Nil(d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.True(ok)
+
+		_, ok = d.Table("missing-table")
+		as.False(ok)
 
 		row, ok := tbl.Select(tableKey1)
 		as.True(ok)
@@ -108,14 +112,15 @@ func TestTableMutateWith(t *testing.T) {
 		as.Equal(tableRow3, row)
 		as.Nil(err)
 		return nil
-	}))
+	})
+	as.Nil(err)
 }
 
-func TestTableMutateWithDelete(t *testing.T) {
+func TestTableDelete(t *testing.T) {
 	as := assert.New(t)
 
 	d, _ := makeTestDatabase()
-	as.Nil(d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.True(ok)
 
@@ -127,14 +132,15 @@ func TestTableMutateWithDelete(t *testing.T) {
 		as.False(ok)
 		as.Nil(row)
 		return nil
-	}))
+	})
+	as.Nil(err)
 }
 
-func TestTableMutateWithTruncate(t *testing.T) {
+func TestTableTruncate(t *testing.T) {
 	as := assert.New(t)
 
 	d, _ := makeTestDatabase()
-	as.Nil(d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.True(ok)
 
@@ -144,14 +150,15 @@ func TestTableMutateWithTruncate(t *testing.T) {
 		as.Nil(old)
 		as.False(ok)
 		return nil
-	}))
+	})
+	as.Nil(err)
 }
 
 func TestTableMutateWithErrors(t *testing.T) {
 	as := assert.New(t)
 
 	d, _ := makeTestDatabase()
-	as.Nil(d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.True(ok)
 
@@ -167,14 +174,15 @@ func TestTableMutateWithErrors(t *testing.T) {
 		as.Nil(old)
 		as.False(ok)
 		return nil
-	}))
+	})
+	as.Nil(err)
 }
 
 func TestTableCreateIndexError(t *testing.T) {
 	as := assert.New(t)
 
 	d, _ := makeTestDatabase()
-	as.Nil(d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.True(ok)
 
@@ -186,5 +194,6 @@ func TestTableCreateIndexError(t *testing.T) {
 		as.NotNil(err)
 		as.EqualError(err, fmt.Sprintf(relation.ErrColumnNotFound, "not found"))
 		return nil
-	}))
+	})
+	as.Nil(err)
 }

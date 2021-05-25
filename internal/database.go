@@ -8,6 +8,7 @@ import (
 	"github.com/caravan/db/prefix"
 	"github.com/caravan/db/table"
 	"github.com/caravan/db/transaction"
+	"github.com/caravan/db/value"
 
 	iradix "github.com/hashicorp/go-immutable-radix"
 )
@@ -15,14 +16,14 @@ import (
 type (
 	// dbInfo is the internal implementation of a Transactor
 	dbInfo struct {
-		prefix.Sequence
-		tables map[table.Name]*tableInfo
-		data   *iradix.Tree
+		sequence value.Key
+		tables   prefix.Prefix
+		data     *iradix.Tree
 	}
 
-	dbTransactor struct {
+	dbTxr struct {
 		*dbInfo
-		transaction.Txn
+		Txn transaction.Txn
 	}
 )
 
@@ -33,57 +34,79 @@ const (
 
 // NewDatabase returns a new Transactor instance
 func NewDatabase() database.Transactor {
-	info := &dbInfo{
-		Sequence: prefix.NewSequence(),
-		tables:   map[table.Name]*tableInfo{},
-		data:     iradix.New(),
-	}
-	return func(fn database.Func) error {
-		txn := makeTransaction(info.data, func(data *iradix.Tree) {
-			info.data = data
-		})
-		err := fn(info.transactor(txn))
-		if err != nil {
-			return err
+	sequence := prefix.Start
+	sequenceKey := sequence.Bytes()
+	tables := sequence.Next()
+	data, _, _ := iradix.New().Insert(sequenceKey, tables)
+	return newDatabaseTransactor(&dbInfo{
+		sequence: sequenceKey,
+		tables:   tables,
+		data:     data,
+	})
+}
+
+func newDatabaseTransactor(db *dbInfo) database.Transactor {
+	return func(fn database.Query) (database.Transactor, error) {
+		dbCopy := db.copy()
+		txn := makeTransaction(dbCopy)
+		err := fn(dbCopy.transactor(txn))
+		if err != nil || !txn.commit() {
+			return newDatabaseTransactor(db), err
 		}
-		txn.Commit()
-		return nil
+		return newDatabaseTransactor(dbCopy), nil
 	}
 }
 
-func (info *dbInfo) transactor(txn transaction.Txn) *dbTransactor {
-	return &dbTransactor{
-		dbInfo: info,
+func (db *dbInfo) copy() *dbInfo {
+	return &(*db)
+}
+
+func (db *dbInfo) transactor(txn transaction.Txn) *dbTxr {
+	return &dbTxr{
+		dbInfo: db,
 		Txn:    txn,
 	}
 }
 
-func (db *dbTransactor) Tables() table.Names {
-	res := make(table.Names, 0, len(db.tables))
-	for n := range db.tables {
-		res = append(res, n)
-	}
+func (db *dbInfo) tableKey(n table.Name) value.Key {
+	return db.tables.WithKey(value.Key(n))
+}
+
+func (db *dbTxr) Tables() table.Names {
+	var res table.Names
+	_ = db.Txn.ForEach(db.tables, func(k value.Key, v transaction.Any) error {
+		name := table.Name(k)
+		res = append(res, name)
+		return nil
+	})
 	return res
 }
 
-func (db *dbTransactor) Table(n table.Name) (table.Table, bool) {
-	if tbl, ok := db.tables[n]; ok {
-		return &tableTransactor{
-			tableInfo: tbl,
-			txn:       db.Txn,
-		}, true
+func (db *dbTxr) Table(n table.Name) (table.Table, bool) {
+	if tbl, ok := db.Txn.Get(db.tableKey(n)); ok {
+		return tbl.(*tableInfo).transactor(db), true
 	}
 	return nil, false
 }
 
-func (db *dbTransactor) CreateTable(
+func (db *dbTxr) CreateTable(
 	n table.Name, cols ...column.Column,
 ) (table.Table, error) {
-	if _, ok := db.tables[n]; ok {
+	key := db.tableKey(n)
+	if _, ok := db.Txn.Get(key); ok {
 		return nil, fmt.Errorf(ErrTableAlreadyExists, n)
 	}
 
 	tbl := makeTable(db, n, cols...)
-	db.tables[n] = tbl
-	return tbl.transactor(db.Txn), nil
+	db.Txn.Insert(key, tbl)
+	return tbl.transactor(db), nil
+}
+
+func (db *dbTxr) nextPrefix() prefix.Prefix {
+	next := prefix.Start
+	if stored, ok := db.Txn.Get(db.sequence); ok {
+		next = stored.(prefix.Prefix).Next()
+	}
+	db.Txn.Insert(db.sequence, next)
+	return next
 }

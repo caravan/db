@@ -8,21 +8,17 @@ import (
 	iradix "github.com/hashicorp/go-immutable-radix"
 )
 
-type (
-	// txn is the internal implementation of a Txn
-	txn struct {
-		txn    *iradix.Txn
-		commit committer
-	}
+// txn is the internal implementation of a Txn
+type txn struct {
+	*dbInfo
+	txn   *iradix.Txn
+	dirty bool
+}
 
-	// committer is a function that is used to perform an internal commit
-	committer func(*iradix.Tree)
-)
-
-func makeTransaction(data *iradix.Tree, commit committer) *txn {
+func makeTransaction(db *dbInfo) *txn {
 	return &txn{
-		txn:    data.Txn(),
-		commit: commit,
+		dbInfo: db,
+		txn:    db.data.Txn(),
 	}
 }
 
@@ -31,17 +27,43 @@ func (t *txn) Get(k value.Key) (transaction.Any, bool) {
 }
 
 func (t *txn) Insert(k value.Key, v transaction.Any) (transaction.Any, bool) {
+	t.dirty = true
 	return t.txn.Insert(k, v)
 }
 
 func (t *txn) Delete(k value.Key) (transaction.Any, bool) {
-	return t.txn.Delete(k)
+	if old, ok := t.txn.Delete(k); ok {
+		t.dirty = true
+		return old, ok
+	}
+	return nil, false
 }
 
 func (t *txn) DeletePrefix(p prefix.Prefix) bool {
-	return t.txn.DeletePrefix(p)
+	ok := t.txn.DeletePrefix(p.Bytes())
+	if ok {
+		t.dirty = true
+	}
+	return ok
 }
 
-func (t *txn) Commit() {
-	t.commit(t.txn.Commit())
+func (t *txn) ForEach(p prefix.Prefix, fn transaction.Reporter) error {
+	pfx := append(p.Bytes(), 0)
+	start := len(pfx)
+	iter := t.txn.Root().Iterator()
+	iter.SeekPrefix(pfx)
+	for k, v, ok := iter.Next(); ok; k, v, ok = iter.Next() {
+		if err := fn(k[start:], v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *txn) commit() bool {
+	if t.dirty {
+		t.dbInfo.data = t.txn.Commit()
+		return true
+	}
+	return false
 }

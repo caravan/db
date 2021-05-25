@@ -14,7 +14,7 @@ func TestUniqueIndexInsert(t *testing.T) {
 	as := assert.New(t)
 
 	d, _ := makeTestDatabase()
-	err := d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.True(ok)
 
@@ -29,7 +29,7 @@ func TestUniqueIndexInsert(t *testing.T) {
 func TestUniqueIndexUpdate(t *testing.T) {
 	as := assert.New(t)
 	d, _ := makeTestDatabase()
-	err := d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, ok := d.Table("test-table")
 		as.True(ok)
 

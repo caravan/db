@@ -16,8 +16,11 @@ type (
 		Delete(value.Key) (Any, bool)
 		DeletePrefix(prefix.Prefix) bool
 		Get(value.Key) (Any, bool)
-		Commit()
+		ForEach(prefix.Prefix, Reporter) error
 	}
+
+	// Reporter is called by ForEach
+	Reporter func(value.Key, Any) error
 
 	// WriterFunc is provided in order to sequence transactional writes
 	WriterFunc func(Txn) error

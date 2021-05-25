@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/caravan/db/index"
@@ -37,13 +36,12 @@ const (
 	ErrUniqueConstraintFailed = "unique constraint failed: %s"
 )
 
-func (i *indexInfo) getIndexKey(r relation.Row) value.Key {
-	var buf bytes.Buffer
-	buf.Write(i.prefix)
+func (i *indexInfo) keysForRow(r relation.Row) []value.Key {
+	var keys []value.Key
 	for _, cell := range i.selector(r) {
-		buf.Write(cell.Bytes())
+		keys = append(keys, cell.Bytes())
 	}
-	return buf.Bytes()
+	return keys
 }
 
 func makeIndexInfo(
@@ -70,7 +68,7 @@ var UniqueIndex = index.Type(
 )
 
 func (w *uniqueIndex) Insert(k value.Key, r relation.Row) error {
-	key := w.prefix.Bytes(w.getIndexKey(r))
+	key := w.prefix.WithKeys(w.keysForRow(r)...)
 	if _, ok := w.txn.Get(key); ok {
 		return fmt.Errorf(ErrUniqueConstraintFailed, w.name)
 	}
@@ -79,7 +77,8 @@ func (w *uniqueIndex) Insert(k value.Key, r relation.Row) error {
 }
 
 func (w *uniqueIndex) Delete(_ value.Key, r relation.Row) bool {
-	_, ok := w.txn.Delete(w.prefix.Bytes(w.getIndexKey(r)))
+	key := w.prefix.WithKeys(w.keysForRow(r)...)
+	_, ok := w.txn.Delete(key)
 	return ok
 }
 
@@ -101,15 +100,15 @@ var StandardIndex = index.Type(
 )
 
 func (i *standardIndex) Insert(k value.Key, r relation.Row) error {
-	key := i.prefix.Bytes(i.getIndexKey(r))
-	key = append(key, k.Bytes()...)
+	keys := append(i.keysForRow(r), k)
+	key := i.prefix.WithKeys(keys...)
 	i.txn.Insert(key, k)
 	return nil
 }
 
 func (i *standardIndex) Delete(k value.Key, r relation.Row) bool {
-	key := i.prefix.Bytes(i.getIndexKey(r))
-	key = append(key, k.Bytes()...)
+	keys := append(i.keysForRow(r), k)
+	key := i.prefix.WithKeys(keys...)
 	_, ok := i.txn.Delete(key)
 	return ok
 }

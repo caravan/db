@@ -19,7 +19,7 @@ func TestMakeDatabase(t *testing.T) {
 func TestCreateTable(t *testing.T) {
 	as := assert.New(t)
 	d := internal.NewDatabase()
-	as.Nil(d(func(d database.Database) error {
+	d, err := d(func(d database.Database) error {
 		tbl, err := d.CreateTable("test-table")
 		as.NotNil(tbl)
 		as.Nil(err)
@@ -39,5 +39,6 @@ func TestCreateTable(t *testing.T) {
 		as.True(ok)
 		as.Equal(tbl, tbl2)
 		return nil
-	}))
+	})
+	as.Nil(err)
 }
