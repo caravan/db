@@ -22,5 +22,7 @@ func TestPrefixes(t *testing.T) {
 	as.Equal([]byte{0, 0, 0, 0}, s.Bytes())
 	as.Equal([]byte{0, 0, 0, 1}, p1.Bytes())
 	as.Equal([]byte{0, 0, 0, 2}, p2.Bytes())
+
+	as.Equal([]byte{0, 0, 0, 2, 0, 1}, p2.WithKey([]byte{1}))
 	as.Equal([]byte{0, 0, 0, 2, 0, 1, 0, 2}, p2.WithKeys([]byte{1}, []byte{2}))
 }
