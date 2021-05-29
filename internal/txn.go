@@ -11,8 +11,7 @@ import (
 // txn is the internal implementation of a txn
 type txn struct {
 	*dbInfo
-	txn   *radix.Txn
-	dirty bool
+	txn *radix.Txn
 }
 
 func makeTransaction(db *dbInfo) *txn {
@@ -27,24 +26,18 @@ func (t *txn) Get(k value.Key) (transaction.Any, bool) {
 }
 
 func (t *txn) Insert(k value.Key, v transaction.Any) (transaction.Any, bool) {
-	t.dirty = true
 	return t.txn.Insert(k, v)
 }
 
 func (t *txn) Delete(k value.Key) (transaction.Any, bool) {
 	if old, ok := t.txn.Delete(k); ok {
-		t.dirty = true
 		return old, ok
 	}
 	return nil, false
 }
 
 func (t *txn) DeletePrefix(p prefix.Prefix) bool {
-	ok := t.txn.DeletePrefix(p.Bytes())
-	if ok {
-		t.dirty = true
-	}
-	return ok
+	return t.txn.DeletePrefix(p.Bytes())
 }
 
 func (t *txn) ForEach(p prefix.Prefix, fn transaction.Reporter) error {
@@ -61,8 +54,8 @@ func (t *txn) ForEach(p prefix.Prefix, fn transaction.Reporter) error {
 }
 
 func (t *txn) commit() bool {
-	if t.dirty {
-		t.dbInfo.data = t.txn.Commit()
+	if data, ok := t.txn.Commit(); ok {
+		t.dbInfo.data = data
 		return true
 	}
 	return false

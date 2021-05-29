@@ -1,7 +1,7 @@
 github.com/caravan/essentials v0.0.0-20210512101253-b50cc8cee525 h1:wAUIe1OnnALAFELBo8Sr/hNwd6UXG1S7kwvG4zXYJag=
 github.com/caravan/essentials v0.0.0-20210512101253-b50cc8cee525/go.mod h1:hhteaUNnHglavc/vjxe0LLZtCFQeFoHSwZGTmLz3DWo=
-github.com/caravan/go-immutable-radix v1.4.0 h1:duZEpwcIsibbpSMEFmPRq8kR9ElfDFg+efZZWx+cytI=
-github.com/caravan/go-immutable-radix v1.4.0/go.mod h1:oA2TmWTj7HYBjBzmcLZZY2siO2762D2lvV7WiyHFVYw=
+github.com/caravan/go-immutable-radix v1.4.1 h1:M2DIgyXrLFjd4gaFYyUV2PYi2hdMDACJydjZskFTBBA=
+github.com/caravan/go-immutable-radix v1.4.1/go.mod h1:oA2TmWTj7HYBjBzmcLZZY2siO2762D2lvV7WiyHFVYw=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/uuid v1.2.0 h1:qJYtXnJRWmpe7m/3XlyhrsLrEURqHRM2kxzoxXqyUDs=
