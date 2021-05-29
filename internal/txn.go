@@ -5,13 +5,13 @@ import (
 	"github.com/caravan/db/transaction"
 	"github.com/caravan/db/value"
 
-	iradix "github.com/hashicorp/go-immutable-radix"
+	radix "github.com/caravan/go-immutable-radix"
 )
 
-// txn is the internal implementation of a Txn
+// txn is the internal implementation of a txn
 type txn struct {
 	*dbInfo
-	txn   *iradix.Txn
+	txn   *radix.Txn
 	dirty bool
 }
 
