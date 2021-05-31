@@ -11,16 +11,20 @@ import (
 	iradix "github.com/caravan/go-immutable-radix"
 )
 
-func TestForwardIterableAll(t *testing.T) {
-	as := assert.New(t)
-
+func makeIterableTree() (prefix.Prefix, *iradix.Tree) {
 	pfx := prefix.Start
 	tree := iradix.New()
 	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(4).Bytes()), 3)
 	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(1).Bytes()), 1)
 	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(8).Bytes()), 4)
 	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(2).Bytes()), 2)
+	return pfx, tree
+}
 
+func TestForwardIterableAll(t *testing.T) {
+	as := assert.New(t)
+
+	pfx, tree := makeIterableTree()
 	next := internal.MakeForwardIterable(pfx, tree.Txn()).All()
 	k, v, next, ok := next()
 	as.True(ok)
@@ -52,13 +56,7 @@ func TestForwardIterableAll(t *testing.T) {
 func TestForwardIterableFrom(t *testing.T) {
 	as := assert.New(t)
 
-	pfx := prefix.Start
-	tree := iradix.New()
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(4).Bytes()), 3)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(1).Bytes()), 1)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(8).Bytes()), 4)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(2).Bytes()), 2)
-
+	pfx, tree := makeIterableTree()
 	next := internal.
 		MakeForwardIterable(pfx, tree.Txn()).
 		From(value.Integer(4).Bytes())
@@ -82,13 +80,7 @@ func TestForwardIterableFrom(t *testing.T) {
 func TestReverseIterableAll(t *testing.T) {
 	as := assert.New(t)
 
-	pfx := prefix.Start
-	tree := iradix.New()
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(4).Bytes()), 3)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(1).Bytes()), 1)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(8).Bytes()), 4)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(2).Bytes()), 2)
-
+	pfx, tree := makeIterableTree()
 	next := internal.MakeReverseIterable(pfx, tree.Txn()).All()
 	k, v, next, ok := next()
 	as.True(ok)
@@ -120,13 +112,7 @@ func TestReverseIterableAll(t *testing.T) {
 func TestReverseIterableFrom(t *testing.T) {
 	as := assert.New(t)
 
-	pfx := prefix.Start
-	tree := iradix.New()
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(4).Bytes()), 3)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(1).Bytes()), 1)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(8).Bytes()), 4)
-	tree, _, _ = tree.Insert(pfx.WithKey(value.Integer(2).Bytes()), 2)
-
+	pfx, tree := makeIterableTree()
 	next := internal.
 		MakeReverseIterable(pfx, tree.Txn()).
 		From(value.Integer(3).Bytes())
