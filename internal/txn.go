@@ -40,17 +40,18 @@ func (t *txn) DeletePrefix(p prefix.Prefix) bool {
 	return t.txn.DeletePrefix(p.Bytes())
 }
 
-func (t *txn) ForEach(p prefix.Prefix, fn transaction.Reporter) error {
-	pfx := append(p.Bytes(), 0)
-	start := len(pfx)
-	iter := t.txn.Root().Iterator()
-	iter.SeekPrefix(pfx)
-	for k, v, ok := iter.Next(); ok; k, v, ok = iter.Next() {
-		if err := fn(k[start:], v); err != nil {
-			return err
-		}
+func (t *txn) Ascending(p prefix.Prefix) transaction.Iterable {
+	return &forward{
+		prefix: p,
+		txn:    t.txn,
 	}
-	return nil
+}
+
+func (t *txn) Descending(p prefix.Prefix) transaction.Iterable {
+	return &reverse{
+		prefix: p,
+		txn:    t.txn,
+	}
 }
 
 func (t *txn) commit() bool {

@@ -8,6 +8,7 @@ import (
 	"github.com/caravan/db/prefix"
 	"github.com/caravan/db/table"
 	"github.com/caravan/db/transaction"
+	"github.com/caravan/db/transaction/iterate"
 	"github.com/caravan/db/value"
 
 	radix "github.com/caravan/go-immutable-radix"
@@ -74,11 +75,13 @@ func (db *dbInfo) tableKey(n table.Name) value.Key {
 
 func (db *dbTxr) Tables() table.Names {
 	var res table.Names
-	_ = db.txn.ForEach(db.tables, func(k value.Key, v transaction.Any) error {
-		name := table.Name(k)
-		res = append(res, name)
-		return nil
-	})
+	_ = iterate.ForEach(db.txn.Ascending(db.tables).All(),
+		func(k value.Key, v transaction.Any) error {
+			name := table.Name(k)
+			res = append(res, name)
+			return nil
+		},
+	)
 	return res
 }
 

@@ -14,13 +14,21 @@ type (
 	Txn interface {
 		Insert(value.Key, Any) (Any, bool)
 		Delete(value.Key) (Any, bool)
-		DeletePrefix(prefix.Prefix) bool
 		Get(value.Key) (Any, bool)
-		ForEach(prefix.Prefix, Reporter) error
+
+		DeletePrefix(prefix.Prefix) bool
+		Ascending(prefix.Prefix) Iterable
+		Descending(prefix.Prefix) Iterable
 	}
 
-	// Reporter is called by ForEach
-	Reporter func(value.Key, Any) error
+	// Iterable can be used to generate an Iterator
+	Iterable interface {
+		All() Iterator
+		From(value.Key) Iterator
+	}
+
+	// Iterator is stateless iteration interface
+	Iterator func() (value.Key, Any, Iterator, bool)
 
 	// WriterFunc is provided in order to sequence transactional writes
 	WriterFunc func(Txn) error
