@@ -7,24 +7,26 @@ import (
 	"github.com/caravan/db/transaction"
 	"github.com/caravan/db/value"
 
-	radix "github.com/caravan/go-immutable-radix"
+	iradix "github.com/caravan/go-immutable-radix"
 )
 
 type (
-	forward struct {
-		prefix prefix.Prefix
-		txn    *radix.Txn
+	iterable struct {
+		prefix.Prefix
+		*iradix.Txn
 	}
 
-	reverse struct {
-		prefix prefix.Prefix
-		txn    *radix.Txn
-	}
+	forwardIterable struct{ iterable }
+	reverseIterable struct{ iterable }
 
 	resolver func() (value.Key, transaction.Any, bool)
 )
 
-func makeIter(p prefix.Prefix, fn resolver) transaction.Iterator {
+func (s iterable) start() int {
+	return len(s.Prefix.Bytes()) + 1
+}
+
+func (s iterable) resolved(fn resolver) transaction.Iterator {
 	var once sync.Once
 	var k value.Key
 	var v transaction.Any
@@ -34,8 +36,8 @@ func makeIter(p prefix.Prefix, fn resolver) transaction.Iterator {
 	return func() (value.Key, transaction.Any, transaction.Iterator, bool) {
 		once.Do(func() {
 			if k, v, ok = fn(); ok {
-				k = k[len(p.Bytes())+1:]
-				next = makeIter(p, fn)
+				k = k[s.start():]
+				next = s.resolved(fn)
 			}
 		})
 		if ok {
@@ -45,34 +47,54 @@ func makeIter(p prefix.Prefix, fn resolver) transaction.Iterator {
 	}
 }
 
-func (f *forward) All() transaction.Iterator {
-	iter := f.txn.Root().Iterator()
-	iter.SeekPrefix(append(f.prefix.Bytes(), 0))
-	return makeIter(f.prefix, func() (value.Key, transaction.Any, bool) {
+// MakeForwardIterable constructs an ascending iterable interface
+func MakeForwardIterable(p prefix.Prefix, t *iradix.Txn) transaction.Iterable {
+	return &forwardIterable{
+		iterable{
+			Prefix: p,
+			Txn:    t,
+		},
+	}
+}
+
+func (f *forwardIterable) All() transaction.Iterator {
+	iter := f.Txn.Root().Iterator()
+	iter.SeekPrefix(append(f.Prefix.Bytes(), 0))
+	return f.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Next()
 	})
 }
 
-func (f *forward) From(k value.Key) transaction.Iterator {
-	iter := f.txn.Root().Iterator()
-	iter.SeekLowerBound(f.prefix.WithKey(k))
-	return makeIter(f.prefix, func() (value.Key, transaction.Any, bool) {
+func (f *forwardIterable) From(k value.Key) transaction.Iterator {
+	iter := f.Txn.Root().Iterator()
+	iter.SeekLowerBound(f.Prefix.WithKey(k))
+	return f.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Next()
 	})
 }
 
-func (r *reverse) All() transaction.Iterator {
-	iter := r.txn.Root().ReverseIterator()
-	iter.SeekPrefix(append(r.prefix.Bytes(), 0))
-	return makeIter(r.prefix, func() (value.Key, transaction.Any, bool) {
+// MakeReverseIterable constructs a descending iterable interface
+func MakeReverseIterable(p prefix.Prefix, t *iradix.Txn) transaction.Iterable {
+	return &reverseIterable{
+		iterable{
+			Prefix: p,
+			Txn:    t,
+		},
+	}
+}
+
+func (r *reverseIterable) All() transaction.Iterator {
+	iter := r.Txn.Root().ReverseIterator()
+	iter.SeekPrefix(append(r.Prefix.Bytes(), 0))
+	return r.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Previous()
 	})
 }
 
-func (r *reverse) From(k value.Key) transaction.Iterator {
-	iter := r.txn.Root().ReverseIterator()
-	iter.SeekReverseLowerBound(r.prefix.WithKey(k))
-	return makeIter(r.prefix, func() (value.Key, transaction.Any, bool) {
+func (r *reverseIterable) From(k value.Key) transaction.Iterator {
+	iter := r.Txn.Root().ReverseIterator()
+	iter.SeekReverseLowerBound(r.Prefix.WithKey(k))
+	return r.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Previous()
 	})
 }

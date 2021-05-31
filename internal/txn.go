@@ -41,17 +41,11 @@ func (t *txn) DeletePrefix(p prefix.Prefix) bool {
 }
 
 func (t *txn) Ascending(p prefix.Prefix) transaction.Iterable {
-	return &forward{
-		prefix: p,
-		txn:    t.txn,
-	}
+	return MakeForwardIterable(p, t.txn)
 }
 
 func (t *txn) Descending(p prefix.Prefix) transaction.Iterable {
-	return &reverse{
-		prefix: p,
-		txn:    t.txn,
-	}
+	return MakeReverseIterable(p, t.txn)
 }
 
 func (t *txn) commit() bool {
