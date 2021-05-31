@@ -77,6 +77,7 @@ func TestMakeTable(t *testing.T) {
 		as.Equal(2, len(tbl.Indexes()))
 		return nil
 	})
+	as.NotNil(d)
 	as.Nil(err)
 }
 
@@ -113,6 +114,7 @@ func TestTable(t *testing.T) {
 		as.Nil(err)
 		return nil
 	})
+	as.NotNil(d)
 	as.Nil(err)
 }
 
@@ -133,6 +135,7 @@ func TestTableDelete(t *testing.T) {
 		as.Nil(row)
 		return nil
 	})
+	as.NotNil(d)
 	as.Nil(err)
 }
 
@@ -151,6 +154,7 @@ func TestTableTruncate(t *testing.T) {
 		as.False(ok)
 		return nil
 	})
+	as.NotNil(d)
 	as.Nil(err)
 }
 
@@ -175,6 +179,7 @@ func TestTableMutateWithErrors(t *testing.T) {
 		as.False(ok)
 		return nil
 	})
+	as.NotNil(d)
 	as.Nil(err)
 }
 
@@ -195,5 +200,6 @@ func TestTableCreateIndexError(t *testing.T) {
 		as.EqualError(err, fmt.Sprintf(relation.ErrColumnNotFound, "not found"))
 		return nil
 	})
+	as.NotNil(d)
 	as.Nil(err)
 }

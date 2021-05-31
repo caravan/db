@@ -20,6 +20,7 @@ func TestUniqueIndexInsert(t *testing.T) {
 
 		return tbl.Insert(value.NewKey(), tableRow1)
 	})
+	as.NotNil(d)
 	as.NotNil(err)
 	as.EqualError(err,
 		fmt.Sprintf(internal.ErrUniqueConstraintFailed, "unique-index"),
@@ -36,6 +37,7 @@ func TestUniqueIndexUpdate(t *testing.T) {
 		_, err := tbl.Update(tableKey2, tableRow1)
 		return err
 	})
+	as.NotNil(d)
 	as.NotNil(err)
 	as.EqualError(err,
 		fmt.Sprintf(internal.ErrUniqueConstraintFailed, "unique-index"),

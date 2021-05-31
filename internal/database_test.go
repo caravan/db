@@ -40,5 +40,6 @@ func TestCreateTable(t *testing.T) {
 		as.Equal(tbl, tbl2)
 		return nil
 	})
+	as.NotNil(d)
 	as.Nil(err)
 }
