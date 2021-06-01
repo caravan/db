@@ -30,6 +30,23 @@ func TestNewKey(t *testing.T) {
 	as.Equal(value.Incomparable, k1.Compare(value.String("not a key")))
 }
 
+func TestJoinKeys(t *testing.T) {
+	as := assert.New(t)
+
+	k1 := value.Key([]byte{1})
+	k2 := value.Key([]byte{2})
+	k3 := value.Key([]byte{3})
+
+	c1 := value.JoinKeys(k1, k2, k3)
+	as.Equal(value.Key{1, 0, 2, 0, 3}, c1)
+
+	c2 := value.JoinKeys(k1)
+	as.Equal(value.Key{1}, c2)
+
+	c3 := value.JoinKeys()
+	as.Equal(value.Key{}, c3)
+}
+
 func TestString(t *testing.T) {
 	as := assert.New(t)
 
