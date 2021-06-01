@@ -47,8 +47,8 @@ func (s iterable) resolved(fn resolver) transaction.Iterator {
 	}
 }
 
-// MakeForwardIterable constructs an ascending iterable interface
-func MakeForwardIterable(p prefix.Prefixed, t *iradix.Txn) transaction.Iterable {
+// ForwardIterable constructs an ascending iterable interface
+func ForwardIterable(p prefix.Prefixed, t *iradix.Txn) transaction.Iterable {
 	return &forwardIterable{
 		iterable{
 			Prefixed: p,
@@ -73,8 +73,8 @@ func (f *forwardIterable) From(k value.Key) transaction.Iterator {
 	})
 }
 
-// MakeReverseIterable constructs a descending iterable interface
-func MakeReverseIterable(p prefix.Prefixed, t *iradix.Txn) transaction.Iterable {
+// ReverseIterable constructs a descending iterable interface
+func ReverseIterable(p prefix.Prefixed, t *iradix.Txn) transaction.Iterable {
 	return &reverseIterable{
 		iterable{
 			Prefixed: p,

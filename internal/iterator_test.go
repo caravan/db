@@ -25,7 +25,7 @@ func TestForwardIterableAll(t *testing.T) {
 	as := assert.New(t)
 
 	pfx, tree := makeIterableTree()
-	next := internal.MakeForwardIterable(pfx, tree.Txn()).All()
+	next := internal.ForwardIterable(pfx, tree.Txn()).All()
 	k, v, next, ok := next()
 	as.True(ok)
 	as.Equal(value.Key([]byte{1, 0, 0, 0, 0, 0, 0, 0, 1}), k)
@@ -58,7 +58,7 @@ func TestForwardIterableFrom(t *testing.T) {
 
 	pfx, tree := makeIterableTree()
 	next := internal.
-		MakeForwardIterable(pfx, tree.Txn()).
+		ForwardIterable(pfx, tree.Txn()).
 		From(value.Integer(4).Bytes())
 	k, v, next, ok := next()
 	as.True(ok)
@@ -81,7 +81,7 @@ func TestReverseIterableAll(t *testing.T) {
 	as := assert.New(t)
 
 	pfx, tree := makeIterableTree()
-	next := internal.MakeReverseIterable(pfx, tree.Txn()).All()
+	next := internal.ReverseIterable(pfx, tree.Txn()).All()
 	k, v, next, ok := next()
 	as.True(ok)
 	as.Equal(value.Key([]byte{1, 0, 0, 0, 0, 0, 0, 0, 8}), k)
@@ -114,7 +114,7 @@ func TestReverseIterableFrom(t *testing.T) {
 
 	pfx, tree := makeIterableTree()
 	next := internal.
-		MakeReverseIterable(pfx, tree.Txn()).
+		ReverseIterable(pfx, tree.Txn()).
 		From(value.Integer(3).Bytes())
 	k, v, next, ok := next()
 	as.True(ok)

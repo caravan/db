@@ -12,32 +12,32 @@ type (
 	// txn is the internal implementation of a txn
 	txn struct {
 		*dbInfo
-		txn *radix.Txn
+		*radix.Txn
 	}
 
 	// txnFor encapsulates a Prefix
 	txnFor struct {
+		*txn
 		prefix.Prefixed
-		txn *radix.Txn
 	}
 )
 
 func makeTransaction(db *dbInfo) *txn {
 	return &txn{
 		dbInfo: db,
-		txn:    db.data.Txn(),
+		Txn:    db.data.Txn(),
 	}
 }
 
 func (t *txn) For(p prefix.Prefixed) transaction.For {
 	return &txnFor{
-		txn:      t.txn,
+		txn:      t,
 		Prefixed: p,
 	}
 }
 
 func (t *txn) commit() bool {
-	if data, ok := t.txn.Commit(); ok {
+	if data, ok := t.Txn.Commit(); ok {
 		t.dbInfo.data = data
 		return true
 	}
@@ -45,30 +45,34 @@ func (t *txn) commit() bool {
 }
 
 func (t *txnFor) Get(k value.Key) (transaction.Any, bool) {
-	return t.txn.Get(t.Prefix().WithKey(k))
+	key := t.Prefix().WithKey(k)
+	return t.Txn.Get(key)
 }
 
 func (t *txnFor) Insert(
 	k value.Key, v transaction.Any,
 ) (transaction.Any, bool) {
-	return t.txn.Insert(t.Prefix().WithKey(k), v)
+	key := t.Prefix().WithKey(k)
+	return t.Txn.Insert(key, v)
 }
 
 func (t *txnFor) Delete(k value.Key) (transaction.Any, bool) {
-	if old, ok := t.txn.Delete(t.Prefix().WithKey(k)); ok {
+	key := t.Prefix().WithKey(k)
+	if old, ok := t.Txn.Delete(key); ok {
 		return old, ok
 	}
 	return nil, false
 }
 
 func (t *txnFor) Drop() bool {
-	return t.txn.DeletePrefix(t.Prefix().Bytes())
+	pfx := t.Prefix().Bytes()
+	return t.Txn.DeletePrefix(pfx)
 }
 
 func (t *txnFor) Ascending() transaction.Iterable {
-	return MakeForwardIterable(t, t.txn)
+	return ForwardIterable(t, t.Txn)
 }
 
 func (t *txnFor) Descending() transaction.Iterable {
-	return MakeReverseIterable(t, t.txn)
+	return ReverseIterable(t, t.Txn)
 }

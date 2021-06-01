@@ -27,4 +27,8 @@ func TestPrefixes(t *testing.T) {
 
 	as.Equal(value.Key{0, 0, 0, 2, 0, 1}, p2.WithKey([]byte{1}))
 	as.Equal(value.Key{0, 0, 0, 2, 0, 1, 0, 2}, p2.WithKeys([]byte{1}, []byte{2}))
+
+	var p3 prefix.Prefixed = p2.Next()
+	as.Equal(p3, p2.Next())
+	as.Equal(p3.Prefix(), p3)
 }
