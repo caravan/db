@@ -70,8 +70,9 @@ func (t *tableTxr) Columns() column.Columns {
 func (t *tableTxr) CreateIndex(
 	typ index.Type, n index.Name, cols ...column.Name,
 ) error {
+	idx := t.txn.For(t.indexes)
 	key := value.Key(n)
-	if _, ok := t.txn.Get(t.indexes, key); ok {
+	if _, ok := idx.Get(key); ok {
 		return fmt.Errorf(ErrIndexAlreadyExists, n)
 	}
 
@@ -82,14 +83,14 @@ func (t *tableTxr) CreateIndex(
 
 	pfx := t.nextPrefix()
 	cons := typ(pfx, n, relation.MakeOffsetSelector(off...))
-	t.txn.Insert(t.indexes, key, cons)
+	idx.Insert(key, cons)
 	return nil
 }
 
 // Indexes returns the defined Indexes for this table
 func (t *tableTxr) Indexes() index.Names {
 	var res index.Names
-	_ = iterate.ForEach(t.txn.Ascending(t.indexes).All(),
+	_ = iterate.ForEach(t.txn.For(t.indexes).Ascending().All(),
 		func(k value.Key, v transaction.Any) error {
 			name := index.Name(k)
 			res = append(res, name)
@@ -108,24 +109,26 @@ func (t *tableTxr) Truncate() {
 		i.Truncate()
 		return nil
 	})
-	t.txn.DeletePrefix(t.rows)
+	t.txn.For(t.rows).Drop()
 }
 
 func (t *tableTxr) Insert(k value.Key, r relation.Row) error {
-	if _, ok := t.txn.Get(t.rows, k); ok {
+	rows := t.txn.For(t.rows)
+	if _, ok := rows.Get(k); ok {
 		return fmt.Errorf(ErrKeyAlreadyExists, k)
 	}
-	_, _ = t.txn.Insert(t.rows, k, r)
+	_, _ = rows.Insert(k, r)
 	return t.mutateIndexes(func(i index.Index) error {
 		return i.Insert(k, r)
 	})
 }
 
 func (t *tableTxr) Update(k value.Key, r relation.Row) (relation.Row, error) {
-	if _, ok := t.txn.Get(t.rows, k); !ok {
+	rows := t.txn.For(t.rows)
+	if _, ok := rows.Get(k); !ok {
 		return nil, fmt.Errorf(ErrKeyNotFound, k)
 	}
-	res, _ := t.txn.Insert(t.rows, k, r)
+	res, _ := rows.Insert(k, r)
 	old := res.(relation.Row)
 	err := t.mutateIndexes(func(i index.Index) error {
 		i.Delete(k, old)
@@ -138,7 +141,7 @@ func (t *tableTxr) Update(k value.Key, r relation.Row) (relation.Row, error) {
 }
 
 func (t *tableTxr) Delete(k value.Key) (relation.Row, bool) {
-	res, ok := t.txn.Delete(t.rows, k)
+	res, ok := t.txn.For(t.rows).Delete(k)
 	if res == nil || !ok {
 		return nil, ok
 	}
@@ -151,14 +154,14 @@ func (t *tableTxr) Delete(k value.Key) (relation.Row, bool) {
 }
 
 func (t *tableTxr) Select(k value.Key) (relation.Row, bool) {
-	if v, ok := t.txn.Get(t.rows, k); ok {
+	if v, ok := t.txn.For(t.rows).Get(k); ok {
 		return v.(relation.Row), true
 	}
 	return nil, false
 }
 
 func (t *tableTxr) mutateIndexes(fn indexerFunc) error {
-	return iterate.ForEach(t.txn.Ascending(t.indexes).All(),
+	return iterate.ForEach(t.txn.For(t.indexes).Ascending().All(),
 		func(k value.Key, v transaction.Any) error {
 			cons := v.(index.Constructor)
 			if err := fn(cons(t.txn)); err != nil {

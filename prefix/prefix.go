@@ -20,6 +20,7 @@ type (
 // Start is the Prefix zero-value
 var Start Prefix
 
+// Prefix makes Prefix a Prefixed instance
 func (p Prefix) Prefix() Prefix {
 	return p
 }

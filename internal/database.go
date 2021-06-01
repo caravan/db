@@ -72,7 +72,7 @@ func (db *dbInfo) transactor(txn transaction.Txn) *dbTxr {
 
 func (db *dbTxr) Tables() table.Names {
 	var res table.Names
-	_ = iterate.ForEach(db.txn.Ascending(db.tables).All(),
+	_ = iterate.ForEach(db.txn.For(db.tables).Ascending().All(),
 		func(k value.Key, v transaction.Any) error {
 			name := table.Name(k)
 			res = append(res, name)
@@ -83,7 +83,7 @@ func (db *dbTxr) Tables() table.Names {
 }
 
 func (db *dbTxr) Table(n table.Name) (table.Table, bool) {
-	if tbl, ok := db.txn.Get(db.tables, value.Key(n)); ok {
+	if tbl, ok := db.txn.For(db.tables).Get(value.Key(n)); ok {
 		return tbl.(*tableInfo).transactor(db), true
 	}
 	return nil, false
@@ -92,21 +92,23 @@ func (db *dbTxr) Table(n table.Name) (table.Table, bool) {
 func (db *dbTxr) CreateTable(
 	n table.Name, cols ...column.Column,
 ) (table.Table, error) {
+	tables := db.txn.For(db.tables)
 	key := value.Key(n)
-	if _, ok := db.txn.Get(db.tables, key); ok {
+	if _, ok := tables.Get(key); ok {
 		return nil, fmt.Errorf(ErrTableAlreadyExists, n)
 	}
 
 	tbl := makeTable(db, n, cols...)
-	db.txn.Insert(db.tables, key, tbl)
+	tables.Insert(key, tbl)
 	return tbl.transactor(db), nil
 }
 
 func (db *dbTxr) nextPrefix() prefix.Prefix {
+	sequence := db.txn.For(db.sequence)
 	next := prefix.Start
-	if stored, ok := db.txn.Get(db.sequence, seqKey); ok {
+	if stored, ok := sequence.Get(seqKey); ok {
 		next = stored.(prefix.Prefix).Next()
 	}
-	db.txn.Insert(db.sequence, seqKey, next)
+	sequence.Insert(seqKey, next)
 	return next
 }

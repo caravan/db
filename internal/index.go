@@ -73,22 +73,23 @@ var UniqueIndex = index.Type(
 )
 
 func (w *uniqueIndex) Insert(k value.Key, r relation.Row) error {
+	idx := w.txn.For(w)
 	key := w.keyForRow(r)
-	if _, ok := w.txn.Get(w, key); ok {
+	if _, ok := idx.Get(key); ok {
 		return fmt.Errorf(ErrUniqueConstraintFailed, w.name)
 	}
-	w.txn.Insert(w, key, k)
+	idx.Insert(key, k)
 	return nil
 }
 
 func (w *uniqueIndex) Delete(_ value.Key, r relation.Row) bool {
 	key := w.keyForRow(r)
-	_, ok := w.txn.Delete(w, key)
+	_, ok := w.txn.For(w).Delete(key)
 	return ok
 }
 
 func (w *uniqueIndex) Truncate() {
-	w.txn.DeletePrefix(w)
+	w.txn.For(w).Drop()
 }
 
 // StandardIndex is an index.Type that allows multiple associations
@@ -107,17 +108,17 @@ var StandardIndex = index.Type(
 func (i *standardIndex) Insert(k value.Key, r relation.Row) error {
 	keys := append(i.keysForRow(r), k)
 	key := value.JoinKeys(keys...)
-	i.txn.Insert(i, key, k)
+	i.txn.For(i).Insert(key, k)
 	return nil
 }
 
 func (i *standardIndex) Delete(k value.Key, r relation.Row) bool {
 	keys := append(i.keysForRow(r), k)
 	key := value.JoinKeys(keys...)
-	_, ok := i.txn.Delete(i, key)
+	_, ok := i.txn.For(i).Delete(key)
 	return ok
 }
 
 func (i *standardIndex) Truncate() {
-	i.txn.DeletePrefix(i)
+	i.txn.For(i).Drop()
 }

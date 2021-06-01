@@ -12,13 +12,18 @@ type (
 	// Txn manages the types of events that can be performed at the
 	// most basic level of the storage system
 	Txn interface {
-		Insert(prefix.Prefixed, value.Key, Any) (Any, bool)
-		Delete(prefix.Prefixed, value.Key) (Any, bool)
-		Get(prefix.Prefixed, value.Key) (Any, bool)
+		For(prefix.Prefixed) For
+	}
 
-		DeletePrefix(prefix.Prefixed) bool
-		Ascending(prefix.Prefixed) Iterable
-		Descending(prefix.Prefixed) Iterable
+	// For exposes events that are bound to a specific Prefixed
+	For interface {
+		Insert(value.Key, Any) (Any, bool)
+		Delete(value.Key) (Any, bool)
+		Get(value.Key) (Any, bool)
+
+		Drop() bool
+		Ascending() Iterable
+		Descending() Iterable
 	}
 
 	// Iterable can be used to generate an Iterator
