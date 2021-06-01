@@ -13,8 +13,8 @@ import (
 type (
 	// indexInfo is the base implementation of an Index
 	indexInfo struct {
+		prefix.Prefixed
 		name     index.Name
-		prefix   prefix.Prefix
 		selector relation.Selector
 	}
 
@@ -44,19 +44,24 @@ func (i *indexInfo) keysForRow(r relation.Row) []value.Key {
 	return keys
 }
 
+func (i *indexInfo) keyForRow(r relation.Row) value.Key {
+	keys := i.keysForRow(r)
+	return value.JoinKeys(keys...)
+}
+
 func makeIndexInfo(
-	p prefix.Prefix, n index.Name, s relation.Selector,
+	p prefix.Prefixed, n index.Name, s relation.Selector,
 ) *indexInfo {
 	return &indexInfo{
 		name:     n,
 		selector: s,
-		prefix:   p,
+		Prefixed: p,
 	}
 }
 
 // UniqueIndex is an index.Type that allows only unique associations
 var UniqueIndex = index.Type(
-	func(p prefix.Prefix, n index.Name, s relation.Selector) index.Constructor {
+	func(p prefix.Prefixed, n index.Name, s relation.Selector) index.Constructor {
 		info := makeIndexInfo(p, n, s)
 		return func(txn transaction.Txn) index.Index {
 			return &uniqueIndex{
@@ -68,27 +73,27 @@ var UniqueIndex = index.Type(
 )
 
 func (w *uniqueIndex) Insert(k value.Key, r relation.Row) error {
-	key := w.prefix.WithKeys(w.keysForRow(r)...)
-	if _, ok := w.txn.Get(key); ok {
+	key := w.keyForRow(r)
+	if _, ok := w.txn.Get(w, key); ok {
 		return fmt.Errorf(ErrUniqueConstraintFailed, w.name)
 	}
-	w.txn.Insert(key, k)
+	w.txn.Insert(w, key, k)
 	return nil
 }
 
 func (w *uniqueIndex) Delete(_ value.Key, r relation.Row) bool {
-	key := w.prefix.WithKeys(w.keysForRow(r)...)
-	_, ok := w.txn.Delete(key)
+	key := w.keyForRow(r)
+	_, ok := w.txn.Delete(w, key)
 	return ok
 }
 
 func (w *uniqueIndex) Truncate() {
-	w.txn.DeletePrefix(w.prefix)
+	w.txn.DeletePrefix(w)
 }
 
 // StandardIndex is an index.Type that allows multiple associations
 var StandardIndex = index.Type(
-	func(p prefix.Prefix, n index.Name, s relation.Selector) index.Constructor {
+	func(p prefix.Prefixed, n index.Name, s relation.Selector) index.Constructor {
 		info := makeIndexInfo(p, n, s)
 		return func(txn transaction.Txn) index.Index {
 			return &standardIndex{
@@ -101,18 +106,18 @@ var StandardIndex = index.Type(
 
 func (i *standardIndex) Insert(k value.Key, r relation.Row) error {
 	keys := append(i.keysForRow(r), k)
-	key := i.prefix.WithKeys(keys...)
-	i.txn.Insert(key, k)
+	key := value.JoinKeys(keys...)
+	i.txn.Insert(i, key, k)
 	return nil
 }
 
 func (i *standardIndex) Delete(k value.Key, r relation.Row) bool {
 	keys := append(i.keysForRow(r), k)
-	key := i.prefix.WithKeys(keys...)
-	_, ok := i.txn.Delete(key)
+	key := value.JoinKeys(keys...)
+	_, ok := i.txn.Delete(i, key)
 	return ok
 }
 
 func (i *standardIndex) Truncate() {
-	i.txn.DeletePrefix(i.prefix)
+	i.txn.DeletePrefix(i)
 }

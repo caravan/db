@@ -28,5 +28,5 @@ type (
 	Constructor func(txn transaction.Txn) Index
 
 	// Type configures a Constructor for Index instances
-	Type func(prefix.Prefix, Name, relation.Selector) Constructor
+	Type func(prefix.Prefixed, Name, relation.Selector) Constructor
 )

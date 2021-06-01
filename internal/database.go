@@ -17,7 +17,7 @@ import (
 type (
 	// dbInfo is the internal implementation of a Transactor
 	dbInfo struct {
-		sequence value.Key
+		sequence prefix.Prefix
 		tables   prefix.Prefix
 		data     *radix.Tree
 	}
@@ -28,6 +28,8 @@ type (
 	}
 )
 
+var seqKey = value.Key("sequence")
+
 // Error messages
 const (
 	ErrTableAlreadyExists = "table already exists: %s"
@@ -36,11 +38,10 @@ const (
 // NewDatabase returns a new Transactor instance
 func NewDatabase() database.Transactor {
 	sequence := prefix.Start
-	sequenceKey := sequence.Bytes()
 	tables := sequence.Next()
-	data, _, _ := radix.New().Insert(sequenceKey, tables)
+	data, _, _ := radix.New().Insert(sequence.WithKey(seqKey), tables)
 	return newDatabaseTransactor(&dbInfo{
-		sequence: sequenceKey,
+		sequence: sequence,
 		tables:   tables,
 		data:     data,
 	})
@@ -69,10 +70,6 @@ func (db *dbInfo) transactor(txn transaction.Txn) *dbTxr {
 	}
 }
 
-func (db *dbInfo) tableKey(n table.Name) value.Key {
-	return db.tables.WithKey(value.Key(n))
-}
-
 func (db *dbTxr) Tables() table.Names {
 	var res table.Names
 	_ = iterate.ForEach(db.txn.Ascending(db.tables).All(),
@@ -86,7 +83,7 @@ func (db *dbTxr) Tables() table.Names {
 }
 
 func (db *dbTxr) Table(n table.Name) (table.Table, bool) {
-	if tbl, ok := db.txn.Get(db.tableKey(n)); ok {
+	if tbl, ok := db.txn.Get(db.tables, value.Key(n)); ok {
 		return tbl.(*tableInfo).transactor(db), true
 	}
 	return nil, false
@@ -95,21 +92,21 @@ func (db *dbTxr) Table(n table.Name) (table.Table, bool) {
 func (db *dbTxr) CreateTable(
 	n table.Name, cols ...column.Column,
 ) (table.Table, error) {
-	key := db.tableKey(n)
-	if _, ok := db.txn.Get(key); ok {
+	key := value.Key(n)
+	if _, ok := db.txn.Get(db.tables, key); ok {
 		return nil, fmt.Errorf(ErrTableAlreadyExists, n)
 	}
 
 	tbl := makeTable(db, n, cols...)
-	db.txn.Insert(key, tbl)
+	db.txn.Insert(db.tables, key, tbl)
 	return tbl.transactor(db), nil
 }
 
 func (db *dbTxr) nextPrefix() prefix.Prefix {
 	next := prefix.Start
-	if stored, ok := db.txn.Get(db.sequence); ok {
+	if stored, ok := db.txn.Get(db.sequence, seqKey); ok {
 		next = stored.(prefix.Prefix).Next()
 	}
-	db.txn.Insert(db.sequence, next)
+	db.txn.Insert(db.sequence, seqKey, next)
 	return next
 }

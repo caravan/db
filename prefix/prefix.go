@@ -1,18 +1,28 @@
 package prefix
 
 import (
-	"bytes"
 	"encoding/binary"
 
 	"github.com/caravan/db/value"
 )
 
-// Prefix is used to partition Database elements within the same
-// underlying data structure
-type Prefix uint32
+type (
+	// Prefix is used to partition Database elements within the same
+	// underlying data structure
+	Prefix uint32
+
+	// Prefixed is a type that is associated with a Prefix
+	Prefixed interface {
+		Prefix() Prefix
+	}
+)
 
 // Start is the Prefix zero-value
 var Start Prefix
+
+func (p Prefix) Prefix() Prefix {
+	return p
+}
 
 // Next returns the next Prefix in sequence
 func (p Prefix) Next() Prefix {
@@ -27,17 +37,11 @@ func (p Prefix) Bytes() []byte {
 }
 
 // WithKey combines this Prefix with a provided Key into a byte array
-func (p Prefix) WithKey(k value.Key) []byte {
+func (p Prefix) WithKey(k value.Key) value.Key {
 	return p.WithKeys(k)
 }
 
 // WithKeys combines this Prefix with the provided Keys into a byte array
-func (p Prefix) WithKeys(keys ...value.Key) []byte {
-	var buf bytes.Buffer
-	buf.Write(p.Bytes())
-	for _, k := range keys {
-		buf.WriteByte(0)
-		buf.Write(k.Bytes())
-	}
-	return buf.Bytes()
+func (p Prefix) WithKeys(keys ...value.Key) value.Key {
+	return value.Key(p.Bytes()).WithKeys(keys...)
 }

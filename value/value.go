@@ -45,6 +45,7 @@ const (
 var (
 	trueBytes  = []byte{1}
 	falseBytes = []byte{0}
+	emptyKey   = Key{}
 )
 
 // NewKey returns a new unique database Key
@@ -72,6 +73,26 @@ func (l Key) Compare(r Value) Comparison {
 // Bytes returns a byte-array representation of this Key
 func (l Key) Bytes() []byte {
 	return l
+}
+
+// WithKeys combines a Key with a set of additional Keys
+func (l Key) WithKeys(k ...Key) Key {
+	keys := append([]Key{l}, k...)
+	return JoinKeys(keys...)
+}
+
+// JoinKeys joins a set of Keys or returns an empty Key if provided none
+func JoinKeys(keys ...Key) Key {
+	if len(keys) == 0 {
+		return emptyKey
+	}
+	var buf bytes.Buffer
+	buf.Write(keys[0].Bytes())
+	for _, k := range keys[1:] {
+		buf.WriteByte(0)
+		buf.Write(k.Bytes())
+	}
+	return buf.Bytes()
 }
 
 // Compare returns a Comparison between this Bool and another Value

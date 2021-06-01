@@ -12,7 +12,7 @@ import (
 
 type (
 	iterable struct {
-		prefix.Prefix
+		prefix.Prefixed
 		*iradix.Txn
 	}
 
@@ -23,7 +23,7 @@ type (
 )
 
 func (s iterable) start() int {
-	return len(s.Prefix.Bytes()) + 1
+	return len(s.Prefix().Bytes()) + 1
 }
 
 func (s iterable) resolved(fn resolver) transaction.Iterator {
@@ -48,18 +48,18 @@ func (s iterable) resolved(fn resolver) transaction.Iterator {
 }
 
 // MakeForwardIterable constructs an ascending iterable interface
-func MakeForwardIterable(p prefix.Prefix, t *iradix.Txn) transaction.Iterable {
+func MakeForwardIterable(p prefix.Prefixed, t *iradix.Txn) transaction.Iterable {
 	return &forwardIterable{
 		iterable{
-			Prefix: p,
-			Txn:    t,
+			Prefixed: p,
+			Txn:      t,
 		},
 	}
 }
 
 func (f *forwardIterable) All() transaction.Iterator {
 	iter := f.Txn.Root().Iterator()
-	iter.SeekPrefix(append(f.Prefix.Bytes(), 0))
+	iter.SeekPrefix(append(f.Prefix().Bytes(), 0))
 	return f.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Next()
 	})
@@ -67,25 +67,25 @@ func (f *forwardIterable) All() transaction.Iterator {
 
 func (f *forwardIterable) From(k value.Key) transaction.Iterator {
 	iter := f.Txn.Root().Iterator()
-	iter.SeekLowerBound(f.Prefix.WithKey(k))
+	iter.SeekLowerBound(f.Prefix().WithKey(k))
 	return f.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Next()
 	})
 }
 
 // MakeReverseIterable constructs a descending iterable interface
-func MakeReverseIterable(p prefix.Prefix, t *iradix.Txn) transaction.Iterable {
+func MakeReverseIterable(p prefix.Prefixed, t *iradix.Txn) transaction.Iterable {
 	return &reverseIterable{
 		iterable{
-			Prefix: p,
-			Txn:    t,
+			Prefixed: p,
+			Txn:      t,
 		},
 	}
 }
 
 func (r *reverseIterable) All() transaction.Iterator {
 	iter := r.Txn.Root().ReverseIterator()
-	iter.SeekPrefix(append(r.Prefix.Bytes(), 0))
+	iter.SeekPrefix(append(r.Prefix().Bytes(), 0))
 	return r.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Previous()
 	})
@@ -93,7 +93,7 @@ func (r *reverseIterable) All() transaction.Iterator {
 
 func (r *reverseIterable) From(k value.Key) transaction.Iterator {
 	iter := r.Txn.Root().ReverseIterator()
-	iter.SeekReverseLowerBound(r.Prefix.WithKey(k))
+	iter.SeekReverseLowerBound(r.Prefix().WithKey(k))
 	return r.resolved(func() (value.Key, transaction.Any, bool) {
 		return iter.Previous()
 	})

@@ -58,14 +58,6 @@ func (t *tableInfo) transactor(db *dbTxr) *tableTxr {
 	}
 }
 
-func (t *tableInfo) indexKey(n index.Name) value.Key {
-	return t.indexes.WithKey([]byte(n))
-}
-
-func (t *tableInfo) rowKey(k value.Key) value.Key {
-	return t.rows.WithKey(k)
-}
-
 func (t *tableTxr) Name() table.Name {
 	return t.name
 }
@@ -78,8 +70,8 @@ func (t *tableTxr) Columns() column.Columns {
 func (t *tableTxr) CreateIndex(
 	typ index.Type, n index.Name, cols ...column.Name,
 ) error {
-	key := t.indexKey(n)
-	if _, ok := t.txn.Get(key); ok {
+	key := value.Key(n)
+	if _, ok := t.txn.Get(t.indexes, key); ok {
 		return fmt.Errorf(ErrIndexAlreadyExists, n)
 	}
 
@@ -90,7 +82,7 @@ func (t *tableTxr) CreateIndex(
 
 	pfx := t.nextPrefix()
 	cons := typ(pfx, n, relation.MakeOffsetSelector(off...))
-	t.txn.Insert(key, cons)
+	t.txn.Insert(t.indexes, key, cons)
 	return nil
 }
 
@@ -120,22 +112,20 @@ func (t *tableTxr) Truncate() {
 }
 
 func (t *tableTxr) Insert(k value.Key, r relation.Row) error {
-	key := t.rowKey(k)
-	if _, ok := t.txn.Get(key); ok {
+	if _, ok := t.txn.Get(t.rows, k); ok {
 		return fmt.Errorf(ErrKeyAlreadyExists, k)
 	}
-	_, _ = t.txn.Insert(key, r)
+	_, _ = t.txn.Insert(t.rows, k, r)
 	return t.mutateIndexes(func(i index.Index) error {
 		return i.Insert(k, r)
 	})
 }
 
 func (t *tableTxr) Update(k value.Key, r relation.Row) (relation.Row, error) {
-	key := t.rowKey(k)
-	if _, ok := t.txn.Get(key); !ok {
+	if _, ok := t.txn.Get(t.rows, k); !ok {
 		return nil, fmt.Errorf(ErrKeyNotFound, k)
 	}
-	res, _ := t.txn.Insert(key, r)
+	res, _ := t.txn.Insert(t.rows, k, r)
 	old := res.(relation.Row)
 	err := t.mutateIndexes(func(i index.Index) error {
 		i.Delete(k, old)
@@ -148,7 +138,7 @@ func (t *tableTxr) Update(k value.Key, r relation.Row) (relation.Row, error) {
 }
 
 func (t *tableTxr) Delete(k value.Key) (relation.Row, bool) {
-	res, ok := t.txn.Delete(t.rowKey(k))
+	res, ok := t.txn.Delete(t.rows, k)
 	if res == nil || !ok {
 		return nil, ok
 	}
@@ -161,7 +151,7 @@ func (t *tableTxr) Delete(k value.Key) (relation.Row, bool) {
 }
 
 func (t *tableTxr) Select(k value.Key) (relation.Row, bool) {
-	if v, ok := t.txn.Get(t.rowKey(k)); ok {
+	if v, ok := t.txn.Get(t.rows, k); ok {
 		return v.(relation.Row), true
 	}
 	return nil, false

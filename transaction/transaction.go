@@ -12,13 +12,13 @@ type (
 	// Txn manages the types of events that can be performed at the
 	// most basic level of the storage system
 	Txn interface {
-		Insert(value.Key, Any) (Any, bool)
-		Delete(value.Key) (Any, bool)
-		Get(value.Key) (Any, bool)
+		Insert(prefix.Prefixed, value.Key, Any) (Any, bool)
+		Delete(prefix.Prefixed, value.Key) (Any, bool)
+		Get(prefix.Prefixed, value.Key) (Any, bool)
 
-		DeletePrefix(prefix.Prefix) bool
-		Ascending(prefix.Prefix) Iterable
-		Descending(prefix.Prefix) Iterable
+		DeletePrefix(prefix.Prefixed) bool
+		Ascending(prefix.Prefixed) Iterable
+		Descending(prefix.Prefixed) Iterable
 	}
 
 	// Iterable can be used to generate an Iterator

@@ -21,30 +21,32 @@ func makeTransaction(db *dbInfo) *txn {
 	}
 }
 
-func (t *txn) Get(k value.Key) (transaction.Any, bool) {
-	return t.txn.Get(k)
+func (t *txn) Get(p prefix.Prefixed, k value.Key) (transaction.Any, bool) {
+	return t.txn.Get(p.Prefix().WithKey(k))
 }
 
-func (t *txn) Insert(k value.Key, v transaction.Any) (transaction.Any, bool) {
-	return t.txn.Insert(k, v)
+func (t *txn) Insert(
+	p prefix.Prefixed, k value.Key, v transaction.Any,
+) (transaction.Any, bool) {
+	return t.txn.Insert(p.Prefix().WithKey(k), v)
 }
 
-func (t *txn) Delete(k value.Key) (transaction.Any, bool) {
-	if old, ok := t.txn.Delete(k); ok {
+func (t *txn) Delete(p prefix.Prefixed, k value.Key) (transaction.Any, bool) {
+	if old, ok := t.txn.Delete(p.Prefix().WithKey(k)); ok {
 		return old, ok
 	}
 	return nil, false
 }
 
-func (t *txn) DeletePrefix(p prefix.Prefix) bool {
-	return t.txn.DeletePrefix(p.Bytes())
+func (t *txn) DeletePrefix(p prefix.Prefixed) bool {
+	return t.txn.DeletePrefix(p.Prefix().Bytes())
 }
 
-func (t *txn) Ascending(p prefix.Prefix) transaction.Iterable {
+func (t *txn) Ascending(p prefix.Prefixed) transaction.Iterable {
 	return MakeForwardIterable(p, t.txn)
 }
 
-func (t *txn) Descending(p prefix.Prefix) transaction.Iterable {
+func (t *txn) Descending(p prefix.Prefixed) transaction.Iterable {
 	return MakeReverseIterable(p, t.txn)
 }
 
