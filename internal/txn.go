@@ -9,13 +9,13 @@ import (
 )
 
 type (
-	// txn is the internal implementation of a txn
+	// txn is the internal implementation of a transaction.Txn
 	txn struct {
 		*dbInfo
 		*radix.Txn
 	}
 
-	// txnFor encapsulates a Prefix
+	// txnFor encapsulates a prefix.Prefixed
 	txnFor struct {
 		*txn
 		prefix.Prefixed
