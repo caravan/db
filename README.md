@@ -8,7 +8,7 @@ _This is a work in progress. Not at all ready to be used for any purpose_
 
 ## Introduction
 
-The database is implemented as a single persistent data structure managed via a transactor function. The transactor function will invoke a provided query and automatically return a new version of the database if that query is successful.
+Caravan DB is a "Database as a Function." What this means is that the database manages a single persistent data structure exposed via a transactor function. The transactor function will invoke a provided query and automatically return a new version of the database if that query is successful.
 
 For example:
 
