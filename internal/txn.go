@@ -69,6 +69,10 @@ func (t *txnFor) Drop() bool {
 	return t.Txn.DeletePrefix(pfx)
 }
 
+func (t *txnFor) Query() transaction.Query {
+	return t
+}
+
 func (t *txnFor) Ascending() transaction.Iterable {
 	return ForwardIterable(t, t.Txn)
 }

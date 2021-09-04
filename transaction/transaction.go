@@ -17,11 +17,20 @@ type (
 
 	// For exposes events that are bound to a specific Prefixed
 	For interface {
+		Mutate
+		Query
+	}
+
+	// Mutate allows changed to data of a Prefixed For
+	Mutate interface {
 		Insert(value.Key, Any) (Any, bool)
 		Delete(value.Key) (Any, bool)
-		Get(value.Key) (Any, bool)
-
 		Drop() bool
+	}
+
+	// Query allows retrieval of data from a Prefixed For
+	Query interface {
+		Get(value.Key) (Any, bool)
 		Ascending() Iterable
 		Descending() Iterable
 	}
