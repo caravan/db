@@ -13,9 +13,9 @@ type (
 	Predicate func(value.Key, transaction.Any) bool
 )
 
-// ForEach iterates over a transaction.Iterator and calls a Reporter
-// for each pair. If that Reporter returns an error, the iteration is
-// canceled and the error is returned
+// ForEach iterates over a transaction.Iterator and calls a Reporter for each
+// pair. If that Reporter returns an error, the iteration is canceled and the
+// error is returned
 func ForEach(iter transaction.Iterator, fn Reporter) error {
 	for k, v, next, ok := iter(); ok; k, v, next, ok = next() {
 		if err := fn(k, v); err != nil {

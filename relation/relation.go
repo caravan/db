@@ -23,8 +23,8 @@ const (
 	ErrColumnNotFound = "column not found in table: %s"
 )
 
-// MakeOffsets takes Columns and a set of Name and returns the Offsets
-// needed to retrieve the specified Names
+// MakeOffsets takes Columns and a set of Name and returns the Offsets needed
+// to retrieve the specified Names
 func MakeOffsets(
 	cols column.Columns, names ...column.Name,
 ) (column.Offsets, error) {
