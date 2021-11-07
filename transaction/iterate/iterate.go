@@ -25,9 +25,9 @@ func ForEach(iter transaction.Iterator, fn Reporter) error {
 	return nil
 }
 
-// While iterates over a transaction.Iterator and checks its pairs
-// against the provided Predicate. The iteration is canceled the first
-// time the Predicate returns false
+// While iterates over a transaction.Iterator and checks its pairs against the
+// provided Predicate. The iteration is canceled the first time the Predicate
+// returns false
 func While(iter transaction.Iterator, fn Predicate) transaction.Iterator {
 	return func() (value.Key, transaction.Any, transaction.Iterator, bool) {
 		k, v, next, ok := iter()

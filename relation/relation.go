@@ -40,8 +40,8 @@ func MakeOffsets(
 	return off, nil
 }
 
-// MakeNamedSelector takes a Columns and a set of Name and returns a
-// Selector that can be used to convert a Row to the desired Relation
+// MakeNamedSelector takes a Columns and a set of Name and returns a Selector
+// that can be used to convert a Row to the desired Relation
 func MakeNamedSelector(
 	cols column.Columns, names ...column.Name,
 ) (Selector, error) {
