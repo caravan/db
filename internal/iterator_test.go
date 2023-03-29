@@ -8,17 +8,17 @@ import (
 	"github.com/caravan/db/value"
 	"github.com/stretchr/testify/assert"
 
-	radix "github.com/caravan/go-immutable-radix"
+	radix "github.com/hashicorp/go-immutable-radix/v2"
 )
 
-func makeIterableTree() (prefix.Prefix, *radix.Tree) {
+func makeIterableTree() (prefix.Prefix, *radix.Tree[any]) {
 	pfx := prefix.Start
-	txn := radix.New().Txn()
+	txn := radix.New[any]().Txn()
 	txn.Insert(pfx.WithKey(value.Integer(4).Bytes()), 3)
 	txn.Insert(pfx.WithKey(value.Integer(1).Bytes()), 1)
 	txn.Insert(pfx.WithKey(value.Integer(8).Bytes()), 4)
 	txn.Insert(pfx.WithKey(value.Integer(2).Bytes()), 2)
-	tree, _ := txn.Commit()
+	tree := txn.Commit()
 	return pfx, tree
 }
 

@@ -5,14 +5,14 @@ import (
 	"github.com/caravan/db/transaction"
 	"github.com/caravan/db/value"
 
-	radix "github.com/caravan/go-immutable-radix"
+	radix "github.com/hashicorp/go-immutable-radix/v2"
 )
 
 type (
 	// txn is the internal implementation of a transaction.Txn
 	txn struct {
 		*dbInfo
-		*radix.Txn
+		*radix.Txn[any]
 	}
 
 	// txnFor encapsulates a prefix.Prefixed
@@ -37,7 +37,7 @@ func (t *txn) For(p prefix.Prefixed) transaction.For {
 }
 
 func (t *txn) commit() bool {
-	if data, ok := t.Txn.Commit(); ok {
+	if data := t.Txn.Commit(); data != t.dbInfo.data {
 		t.dbInfo.data = data
 		return true
 	}

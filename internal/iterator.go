@@ -7,13 +7,13 @@ import (
 	"github.com/caravan/db/transaction"
 	"github.com/caravan/db/value"
 
-	radix "github.com/caravan/go-immutable-radix"
+	radix "github.com/hashicorp/go-immutable-radix/v2"
 )
 
 type (
 	iterable struct {
 		prefix.Prefixed
-		*radix.Txn
+		*radix.Txn[any]
 	}
 
 	forwardIterable struct{ iterable }
@@ -48,7 +48,9 @@ func (s iterable) resolved(fn resolver) transaction.Iterator {
 }
 
 // ForwardIterable constructs an ascending iterable interface
-func ForwardIterable(p prefix.Prefixed, t *radix.Txn) transaction.Iterable {
+func ForwardIterable(
+	p prefix.Prefixed, t *radix.Txn[any],
+) transaction.Iterable {
 	return &forwardIterable{
 		iterable{
 			Prefixed: p,
@@ -74,7 +76,9 @@ func (f *forwardIterable) From(k value.Key) transaction.Iterator {
 }
 
 // ReverseIterable constructs a descending iterable interface
-func ReverseIterable(p prefix.Prefixed, t *radix.Txn) transaction.Iterable {
+func ReverseIterable(
+	p prefix.Prefixed, t *radix.Txn[any],
+) transaction.Iterable {
 	return &reverseIterable{
 		iterable{
 			Prefixed: p,

@@ -11,7 +11,7 @@ import (
 	"github.com/caravan/db/transaction/iterate"
 	"github.com/caravan/db/value"
 
-	radix "github.com/caravan/go-immutable-radix"
+	radix "github.com/hashicorp/go-immutable-radix/v2"
 )
 
 type (
@@ -19,7 +19,7 @@ type (
 	dbInfo struct {
 		sequence prefix.Prefix
 		tables   prefix.Prefix
-		data     *radix.Tree
+		data     *radix.Tree[any]
 	}
 
 	dbTxr struct {
@@ -39,7 +39,7 @@ const (
 func NewDatabase() database.Transactor {
 	sequence := prefix.Start
 	tables := sequence.Next()
-	data, _, _ := radix.New().Insert(sequence.WithKey(seqKey), tables)
+	data, _, _ := radix.New[any]().Insert(sequence.WithKey(seqKey), tables)
 	return newDatabaseTransactor(&dbInfo{
 		sequence: sequence,
 		tables:   tables,
@@ -60,7 +60,8 @@ func newDatabaseTransactor(db *dbInfo) database.Transactor {
 }
 
 func (db *dbInfo) copy() *dbInfo {
-	return &(*db)
+	c := *db
+	return &c
 }
 
 func (db *dbInfo) transactor(txn transaction.Txn) *dbTxr {

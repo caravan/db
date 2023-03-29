@@ -101,7 +101,7 @@ func (l Bool) Compare(r Value) Comparison {
 		switch {
 		case l == r:
 			return EqualTo
-		case l == false:
+		case !bool(l):
 			return LessThan
 		default:
 			return GreaterThan
