@@ -37,4 +37,4 @@ func main() {
 }
 ```
 
-The variable `empty` will point to the original  empty database, whereas the variable `stuff` will point to a new version of the database that contains a table called `"some-table"`.
+The variable `empty` will point to the original empty database, whereas the variable `stuff` will point to a new version of the database that contains a table called `"some-table"`.
