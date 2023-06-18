@@ -1,6 +1,6 @@
 module github.com/caravan/db
 
-go 1.18
+go 1.19
 
 require (
 	github.com/caravan/essentials v0.0.0-20230617182456-5d586c7cdb8c
