@@ -9,7 +9,7 @@ type (
 
 	// Column describes a column to be selected from a Table. The
 	// description includes the column's name and a TableSelector for
-	// retrieving the column's value from an Event
+	// retrieving the column's value from a message
 	Column interface {
 		Name() Name
 	}

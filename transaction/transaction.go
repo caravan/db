@@ -6,13 +6,13 @@ import (
 )
 
 type (
-	// Txn manages the types of events that can be performed at the
+	// Txn manages the types of actions that can be performed at the
 	// most basic level of the storage system
 	Txn interface {
 		For(prefix.Prefixed) For
 	}
 
-	// For exposes events that are bound to a specific Prefixed
+	// For exposes actions that are bound to a specific Prefixed
 	For interface {
 		Mutate
 		Query
