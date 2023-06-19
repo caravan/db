@@ -11,7 +11,7 @@ import (
 )
 
 func makeSequence(start int) transaction.Iterator {
-	return func() (value.Key, transaction.Any, transaction.Iterator, bool) {
+	return func() (value.Key, any, transaction.Iterator, bool) {
 		return []byte{}, start, makeSequence(start + 1), true
 	}
 }
@@ -19,7 +19,7 @@ func makeSequence(start int) transaction.Iterator {
 func TestForEach(t *testing.T) {
 	as := assert.New(t)
 	err := iterate.ForEach(makeSequence(0),
-		func(_ value.Key, v transaction.Any) error {
+		func(_ value.Key, v any) error {
 			if v, ok := v.(int); ok {
 				if v > 10 {
 					return errors.New("done")
@@ -36,7 +36,7 @@ func TestForEach(t *testing.T) {
 func TestWhile(t *testing.T) {
 	as := assert.New(t)
 	iter := iterate.While(makeSequence(0),
-		func(_ value.Key, v transaction.Any) bool {
+		func(_ value.Key, v any) bool {
 			res, ok := v.(int)
 			return ok && res < 3
 		},

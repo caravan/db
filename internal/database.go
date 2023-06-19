@@ -74,7 +74,7 @@ func (db *dbInfo) transactor(txn transaction.Txn) *dbTxr {
 func (db *dbTxr) Tables() table.Names {
 	var res table.Names
 	_ = iterate.ForEach(db.txn.For(db.tables).Ascending().All(),
-		func(k value.Key, v transaction.Any) error {
+		func(k value.Key, v any) error {
 			name := table.Name(k)
 			res = append(res, name)
 			return nil

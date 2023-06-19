@@ -8,7 +8,6 @@ import (
 	"github.com/caravan/db/prefix"
 	"github.com/caravan/db/relation"
 	"github.com/caravan/db/table"
-	"github.com/caravan/db/transaction"
 	"github.com/caravan/db/transaction/iterate"
 	"github.com/caravan/db/value"
 )
@@ -91,7 +90,7 @@ func (t *tableTxr) CreateIndex(
 func (t *tableTxr) Indexes() index.Names {
 	var res index.Names
 	_ = iterate.ForEach(t.txn.For(t.indexes).Ascending().All(),
-		func(k value.Key, v transaction.Any) error {
+		func(k value.Key, v any) error {
 			name := index.Name(k)
 			res = append(res, name)
 			return nil
@@ -162,7 +161,7 @@ func (t *tableTxr) Select(k value.Key) (relation.Row, bool) {
 
 func (t *tableTxr) mutateIndexes(fn indexerFunc) error {
 	return iterate.ForEach(t.txn.For(t.indexes).Ascending().All(),
-		func(k value.Key, v transaction.Any) error {
+		func(k value.Key, v any) error {
 			cons := v.(index.Constructor)
 			if err := fn(cons(t.txn)); err != nil {
 				return err

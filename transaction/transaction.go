@@ -6,9 +6,6 @@ import (
 )
 
 type (
-	// Any is a stand-in for Go's empty interface
-	Any interface{}
-
 	// Txn manages the types of events that can be performed at the
 	// most basic level of the storage system
 	Txn interface {
@@ -23,14 +20,14 @@ type (
 
 	// Mutate allows changed to data of a Prefixed For
 	Mutate interface {
-		Insert(value.Key, Any) (Any, bool)
-		Delete(value.Key) (Any, bool)
+		Insert(value.Key, any) (any, bool)
+		Delete(value.Key) (any, bool)
 		Drop() bool
 	}
 
 	// Query allows retrieval of data from a Prefixed For
 	Query interface {
-		Get(value.Key) (Any, bool)
+		Get(value.Key) (any, bool)
 		Ascending() Iterable
 		Descending() Iterable
 	}
@@ -42,7 +39,7 @@ type (
 	}
 
 	// Iterator is stateless iteration interface
-	Iterator func() (value.Key, Any, Iterator, bool)
+	Iterator func() (value.Key, any, Iterator, bool)
 
 	// WriterFunc is provided in order to sequence transactional writes
 	WriterFunc func(Txn) error

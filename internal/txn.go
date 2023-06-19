@@ -44,19 +44,19 @@ func (t *txn) commit() bool {
 	return false
 }
 
-func (t *txnFor) Get(k value.Key) (transaction.Any, bool) {
+func (t *txnFor) Get(k value.Key) (any, bool) {
 	key := t.Prefix().WithKey(k)
 	return t.Txn.Get(key)
 }
 
 func (t *txnFor) Insert(
-	k value.Key, v transaction.Any,
-) (transaction.Any, bool) {
+	k value.Key, v any,
+) (any, bool) {
 	key := t.Prefix().WithKey(k)
 	return t.Txn.Insert(key, v)
 }
 
-func (t *txnFor) Delete(k value.Key) (transaction.Any, bool) {
+func (t *txnFor) Delete(k value.Key) (any, bool) {
 	key := t.Prefix().WithKey(k)
 	if old, ok := t.Txn.Delete(key); ok {
 		return old, ok

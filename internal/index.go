@@ -70,7 +70,7 @@ func (i *baseIndex) Truncate() {
 func (i *baseIndex) EQ(r relation.Relation) transaction.Iterator {
 	pfx := i.keyForValues(r...)
 	iter := i.txn.For(i).Ascending().From(pfx)
-	return iterate.While(iter, func(k value.Key, _ transaction.Any) bool {
+	return iterate.While(iter, func(k value.Key, _ any) bool {
 		return k.Compare(pfx) == value.EqualTo
 	})
 }
@@ -78,7 +78,7 @@ func (i *baseIndex) EQ(r relation.Relation) transaction.Iterator {
 func (i *baseIndex) NEQ(r relation.Relation) transaction.Iterator {
 	pfx := i.keyForValues(r...)
 	iter := i.txn.For(i).Ascending().All()
-	return iterate.While(iter, func(k value.Key, _ transaction.Any) bool {
+	return iterate.While(iter, func(k value.Key, _ any) bool {
 		return k.Compare(pfx) != value.EqualTo
 	})
 }
@@ -86,7 +86,7 @@ func (i *baseIndex) NEQ(r relation.Relation) transaction.Iterator {
 func (i *baseIndex) LT(r relation.Relation) transaction.Iterator {
 	pfx := i.keyForValues(r...)
 	iter := i.txn.For(i).Ascending().All()
-	return iterate.While(iter, func(k value.Key, _ transaction.Any) bool {
+	return iterate.While(iter, func(k value.Key, _ any) bool {
 		return k.Compare(pfx) == value.LessThan
 	})
 }
@@ -94,7 +94,7 @@ func (i *baseIndex) LT(r relation.Relation) transaction.Iterator {
 func (i *baseIndex) GT(r relation.Relation) transaction.Iterator {
 	pfx := i.keyForValues(r...)
 	iter := i.txn.For(i).Ascending().All()
-	return iterate.While(iter, func(k value.Key, _ transaction.Any) bool {
+	return iterate.While(iter, func(k value.Key, _ any) bool {
 		return k.Compare(pfx) == value.GreaterThan
 	})
 }

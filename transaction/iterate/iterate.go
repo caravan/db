@@ -7,10 +7,10 @@ import (
 
 type (
 	// Reporter is called to report a key/value pair to iterating code
-	Reporter func(value.Key, transaction.Any) error
+	Reporter func(value.Key, any) error
 
 	// Predicate is called to determine whether to report a key/value pair
-	Predicate func(value.Key, transaction.Any) bool
+	Predicate func(value.Key, any) bool
 )
 
 // ForEach iterates over a transaction.Iterator and calls a Reporter for each
@@ -29,7 +29,7 @@ func ForEach(iter transaction.Iterator, fn Reporter) error {
 // provided Predicate. The iteration is canceled the first time the Predicate
 // returns false
 func While(iter transaction.Iterator, fn Predicate) transaction.Iterator {
-	return func() (value.Key, transaction.Any, transaction.Iterator, bool) {
+	return func() (value.Key, any, transaction.Iterator, bool) {
 		k, v, next, ok := iter()
 		if ok && fn(k, v) {
 			return k, v, While(next, fn), ok
